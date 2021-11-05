@@ -1,0 +1,20 @@
+general: {folder_output: outputs, fname_output: tower_output}
+design_variables:
+    tower:
+        outer_diameter: {flag: true, lower_bound: 3.87, upper_bound: 8.0}
+        layer_thickness: {flag: true, lower_bound: 0.004, upper_bound: 0.2}
+merit_figure: tower_mass
+constraints:
+    tower:
+        height_constraint: {flag: false, lower_bound: 0.01, upper_bound: 0.01}
+        stress: {flag: true}
+        global_buckling: {flag: true}
+        shell_buckling: {flag: true}
+        d_to_t: {flag: true, lower_bound: 120.0, upper_bound: 500.0}
+        taper: {flag: true, lower_bound: 0.2}
+        slope: {flag: true}
+        frequency_1: {flag: true, lower_bound: 0.13, upper_bound: 0.4}
+driver:
+    optimization: {flag: true, tol: 1e-06, max_iter: 1, solver: LD_SLSQP, step_size: 1e-06, form: forward}
+    design_of_experiments: {flag: false, run_parallel: true, generator: Uniform, num_samples: 5}
+recorder: {flag: true, file_name: log_opt.sql}

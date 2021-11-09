@@ -3179,45 +3179,6 @@ rotorse.rs.brs.root_M,N*m,[  3358464.28440864 -15972708.60934895        -0.     
 rotorse.rs.brs.s_f,,[2.5],Safety factor
 rotorse.rs.brs.d_f,m,[0.03],Diameter of the fastener
 rotorse.rs.brs.sigma_max,Pa,[6.75e+08],Max stress on bolt
-rotorse.rs.sjs.load_factor,,[1.],
-rotorse.rs.sjs.nprf,,[1.2],
-rotorse.rs.sjs.ny,,[2.],
-rotorse.rs.sjs.ns,,[2.],
-rotorse.rs.sjs.n0,,[1.2],
-rotorse.rs.sjs.nf,,[2.],
-rotorse.rs.sjs.Sp_bolt,Pa,[8.3e+08],
-rotorse.rs.sjs.Sy_bolt,Pa,[9.4e+08],
-rotorse.rs.sjs.Su_bolt,Pa,[1.04e+09],
-rotorse.rs.sjs.Se_bolt,Pa,[1.62e+08],
-rotorse.rs.sjs.E_bolt,Pa,[2.e+11],
-rotorse.rs.sjs.d_bolt,,[0.048],
-rotorse.rs.sjs.L_bolt,m,[1.],
-rotorse.rs.sjs.m_bolt,,[15.15],
-rotorse.rs.sjs.density_insert,kg/m**3,[0.],
-rotorse.rs.sjs.Sy_insert,Pa,[1.65e+09],
-rotorse.rs.sjs.Su_insert,Pa,[1.79e+09],
-rotorse.rs.sjs.Se_insert,Pa,[3.16e+08],
-rotorse.rs.sjs.E_insert,Pa,[2.1e+11],
-rotorse.rs.sjs.mu_joint,Pa,[0.5],
-rotorse.rs.sjs.Ss_sparcap,Pa,[30170000.],
-rotorse.rs.sjs.density_sparcap,kg/m**3,[1600.],
-rotorse.rs.sjs.bolt_spacing_dia,,[3.],
-rotorse.rs.sjs.ply_drop_slope,,[0.125],
-rotorse.rs.sjs.t_adhesive,m,[0.005],
-rotorse.rs.sjs.t_max_sparcap,,[0.25],
-rotorse.rs.sjs.w_nom,m,[0.02],
-rotorse.rs.sjs.t_nom,m,[0.8],
-rotorse.rs.sjs.chord,m,[3.],
-rotorse.rs.sjs.h,m,[0.6],
-rotorse.rs.sjs.L_segment,m,[3.54573],
-rotorse.rs.sjs.eta,,[0.69],
-rotorse.rs.sjs.Mflap_static,N*m,[1640000.],
-rotorse.rs.sjs.Medge_static,N*m,[150000.],
-rotorse.rs.sjs.Fflap_static,N*m,[310000.],
-rotorse.rs.sjs.a,,[0.1965],
-rotorse.rs.sjs.b,,[0.],
-rotorse.rs.sjs.c,,[0.6448],
-rotorse.rs.sjs.itermax,,[20.],
 rotorse.rc.blade_length,m,[61.5],blade length
 rotorse.rc.s,,"[0.         0.03448276 0.06896552 0.10344828 0.13793103 0.17241379
  0.20689655 0.24137931 0.27586207 0.31034483 0.34482759 0.37931034
@@ -7755,13 +7716,8 @@ rotorse.rs.constr.constr_max_strainL_te,,"[1.83416823e-02 9.31473784e-02 1.24493
  1.13599906e-02 8.69960700e-07]",constraint for maximum strain in trailing edge pressure side
 rotorse.rs.constr.constr_flap_f_margin,,[ -2.06480855  -5.50538908 -10.55642787 -17.69711804 -21.56718743],constraint on flap blade frequency such that ratio of 3P/f is above or below gamma with constraint <= 0
 rotorse.rs.constr.constr_edge_f_margin,,[ -0.15360104  -0.50834566  -3.10636178  -7.89229818 -14.12058734],constraint on edge blade frequency such that ratio of 3P/f is above or below gamma with constraint <= 0
-rotorse.rs.brs.d_r,m,[0.],Root fastener circle diameter
-rotorse.rs.brs.ratio,,[0.],Ratio of recommended diameter over actual diameter. It can be constrained to be smaller than 1
-rotorse.rs.sjs.t_joint,m,[0.0804211],Required sparcap thickness at segmentation joint
-rotorse.rs.sjs.w_joint,m,[0.864],Required sparcap width at segmentation joint
-rotorse.rs.sjs.L_transition_joint,m,[0.46272876],Required length to accommodate spar cap size increase at segmentation joint
-rotorse.rs.sjs.n_bolt_joint,,[12.],Required number of bolts for segmentation joint
-rotorse.rs.sjs.m_add_joint,kg,[24.626897],Mass of bolts + inserts minus mass of spar cap cutouts for segmentation joint
+rotorse.rs.brs.d_r,m,[3.13050588],Root fastener circle diameter
+rotorse.rs.brs.ratio,,[0.90234381],Ratio of recommended diameter over actual diameter. It can be constrained to be smaller than 1
 rotorse.rc.sect_perimeter,m,"[11.12596508 11.31808091 11.20586816 10.70717245 10.34722633 10.33135119
  10.25896782 10.1773573   9.88363715  9.60690667  9.32615605  9.03002693
   8.70872545  8.38582222  8.06156739  7.75256771  7.45669776  7.16482462

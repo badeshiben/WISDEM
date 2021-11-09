@@ -197,3 +197,6 @@ def load_wisdem(frootin):
     wt_opt = fileIO.load_data(fpkl, wt_opt)
 
     return wt_opt, modeling_options, opt_options
+
+if __name__ == "__main__":
+    run_wisdem('../../examples/02_reference_turbines/nrel5mw.yaml', '../../examples/02_reference_turbines/modeling_options.yaml', '../../examples/02_reference_turbines/analysis_options.yaml', overridden_values=None, run_only=False)

@@ -103,6 +103,7 @@ def assign_blade_values(wt_opt, modeling_options, blade):
     wt_opt = assign_outer_shape_bem_values(wt_opt, modeling_options, blade["outer_shape_bem"])
     wt_opt = assign_internal_structure_2d_fem_values(wt_opt, modeling_options, blade["internal_structure_2d_fem"])
     wt_opt = assign_te_flaps_values(wt_opt, modeling_options, blade)
+    #wt_opt = assign_blade_joint_values(wt_opt, modeling_options, blade["internal_structure_2d_fem"])
 
     return wt_opt
 
@@ -191,6 +192,9 @@ def assign_outer_shape_bem_values(wt_opt, modeling_options, outer_shape_bem):
     # plt.show()
 
     return wt_opt
+
+def assign_blade_joint_values(wt_opt, modeling_options, outer_shape_bem):
+    x=1
 
 
 def assign_internal_structure_2d_fem_values(wt_opt, modeling_options, internal_structure_2d_fem):

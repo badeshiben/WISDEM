@@ -1021,7 +1021,8 @@ class BladeRootSizing(ExplicitComponent):
             desc="Ratio of recommended diameter over actual diameter. It can be constrained to be smaller than 1",
         )
 
-class SegmentationJointSizing(ExplicitComponent):
+
+class BladeJointSizing(ExplicitComponent):
     """
     Compute the minimum joint size given the blade loading.
 
@@ -1483,7 +1484,8 @@ class  RotorStructure(Group):
             "constr", DesignConstraints(modeling_options=modeling_options, opt_options=opt_options), promotes=["s"]
         )
         self.add_subsystem("brs", BladeRootSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"]))
-        self.add_subsystem("sjs", SegmentationJointSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"]))
+
+        self.add_subsystem("bjs", BladeJointSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"]))
 
         # if modeling_options['rotorse']['FatigueMode'] > 0:
         #     promoteListFatigue = ['r', 'gamma_f', 'gamma_m', 'E', 'Xt', 'Xc', 'x_tc', 'y_tc', 'EIxx', 'EIyy', 'pitch_axis', 'chord', 'layer_name', 'layer_mat', 'definition_layer', 'sc_ss_mats','sc_ps_mats','te_ss_mats','te_ps_mats','rthick']

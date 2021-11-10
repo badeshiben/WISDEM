@@ -159,8 +159,12 @@ class WT_RNTA(om.Group):
             self.connect("blade.ps.layer_thickness_param", "rotorse.rs.brs.layer_thickness")
             self.connect("blade.internal_structure_2d_fem.layer_start_nd", "rotorse.rs.brs.layer_start_nd")
             self.connect("blade.internal_structure_2d_fem.layer_end_nd", "rotorse.rs.brs.layer_end_nd")
-            self.connect("blade.internal_structure_2d_fem.layer_end_nd", "rotorse.rs.brs.layer_end_nd")
-            self.connect("blade.outer_shape_bem.chord", "rotorse.rs.brs.layer_end_nd")
+            # self.connect("materials.rho", "rotorse.rs.bjs.rho")
+            # self.connect("materials.Xt", "rotorse.rs.bjs.Xt")
+            # self.connect("materials.Xy", "rotorse.rs.bjs.Xy")
+            # self.connect("materials.E", "rotorse.rs.bjs.E")
+            # self.connect("materials.S", "rotorse.rs.bjs.S")
+            # self.connect("blade.outer_shape_bem.thickness", "rotorse.rs.bjs.blade_thickness")
 
             # Connections to RotorCost
             self.connect("blade.high_level_blade_props.blade_length", "rotorse.rc.blade_length")

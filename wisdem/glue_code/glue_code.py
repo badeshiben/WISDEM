@@ -127,7 +127,7 @@ class WT_RNTA(om.Group):
             self.connect("materials.nu", "rotorse.re.precomp.nu")
             self.connect("materials.rho", "rotorse.re.precomp.rho")
 
-            # Conncetions to rail transport module
+            # Connections to rail transport module
             if opt_options["constraints"]["blade"]["rail_transport"]["flag"]:
                 self.connect("blade.high_level_blade_props.blade_ref_axis", "rotorse.re.rail.blade_ref_axis")
 
@@ -159,11 +159,12 @@ class WT_RNTA(om.Group):
             self.connect("blade.ps.layer_thickness_param", "rotorse.rs.brs.layer_thickness")
             self.connect("blade.internal_structure_2d_fem.layer_start_nd", "rotorse.rs.brs.layer_start_nd")
             self.connect("blade.internal_structure_2d_fem.layer_end_nd", "rotorse.rs.brs.layer_end_nd")
-            # self.connect("materials.rho", "rotorse.rs.bjs.rho")
-            # self.connect("materials.Xt", "rotorse.rs.bjs.Xt")
-            # self.connect("materials.Xy", "rotorse.rs.bjs.Xy")
-            # self.connect("materials.E", "rotorse.rs.bjs.E")
-            # self.connect("materials.S", "rotorse.rs.bjs.S")
+            self.connect("materials.name", "rotorse.rs.bjs.name_mat")
+            self.connect("materials.rho", "rotorse.rs.bjs.rho_mat")
+            self.connect("materials.Xt", "rotorse.rs.bjs.Xt_mat")
+            self.connect("materials.sigma_y", "rotorse.rs.bjs.Xy_mat")
+            self.connect("materials.E", "rotorse.rs.bjs.E_mat")
+            # self.connect("materials.S", "rotorse.rs.bjs.S_mat")
             # self.connect("blade.outer_shape_bem.thickness", "rotorse.rs.bjs.blade_thickness")
 
             # Connections to RotorCost

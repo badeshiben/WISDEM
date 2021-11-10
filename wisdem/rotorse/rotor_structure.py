@@ -1060,9 +1060,10 @@ class BladeJointSizing(ExplicitComponent):
 
     def initialize(self):
         self.options.declare("rotorse_options")
+        self.options.declare("n_mat")
 
     def setup(self):
-
+        n_mat = int(self.options["n_mat"])
         rotorse_options = self.options["rotorse_options"]
 
         # safety factors. These will eventually come from the modeling yaml, but are currently hardcoded.
@@ -1086,6 +1087,12 @@ class BladeJointSizing(ExplicitComponent):
 
         # steel insert material properties. These mostly come from the geometry yaml. rotorse.rs.joint.INPUTNAME. Will all come from materials openmdao component
         # material: Stainless Steel 440A, tempered @315C. Cold worked 304: 515/860. (http://www.matweb.com/search/datasheet_print.aspx?matguid=4f9c4c71102d4cd9b4c52622588e99a0)
+        self.add_discrete_input('name_mat', val=n_mat * [""])
+        self.add_input('rho_mat', val=np.zeros(n_mat), units='kg/m**3')
+        self.add_input('Xt_mat', val=np.zeros((n_mat, 3)), units='Pa')
+        self.add_input('Xy_mat', val=np.zeros(n_mat), units='Pa')
+        self.add_input('E_mat', val=np.zeros((n_mat, 3)), units='Pa')
+        # self.add_input('S_mat', val=np.zeros(n_mat), units='Pa')
         self.add_input('density_insert', val=0, units='kg/m**3')
         self.add_input('Sy_insert', val=1650e6, units='Pa')
         self.add_input('Su_insert', val=1790e6, units='Pa')
@@ -1131,7 +1138,7 @@ class BladeJointSizing(ExplicitComponent):
         self.add_output('m_add_joint', val=0, units='kg',
                         desc='Mass of bolts + inserts minus mass of spar cap cutouts for segmentation joint')
 
-    def compute(self, inputs, outputs):
+    def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
         load_factor = inputs['load_factor']
         nprf = inputs['nprf']
         ny = inputs['ny']
@@ -1149,15 +1156,24 @@ class BladeJointSizing(ExplicitComponent):
         L_bolt = inputs['L_bolt']
         m_bolt = inputs['m_bolt']
 
-        p_insert = inputs['density_insert']
-        Sy_insert = inputs['Sy_insert']
-        Su_insert = inputs['Su_insert']
+        name_mat = discrete_inputs["name_mat"]
+        rho_mat = inputs["rho_mat"]
+        Xt_mat = inputs["Xt_mat"]
+        Xy_mat = inputs["Xy_mat"]
+        E_mat = inputs["E_mat"]
+        # S_mat = inputs["S_mat"]  # TODO this needs to be added to the WISDEM input
+
+        insert_i = name_mat.index('steel')
+        rho_insert = rho_mat[insert_i]
+        Sy_insert = Xy_mat[insert_i]
+        Sy_insert = Xt_mat[insert_i, 0]
         Se_insert = inputs['Se_insert']
-        E_insert = inputs['E_insert']
+        E_insert = E_mat[insert_i, 0]
         mu = inputs['mu_joint']
 
+        sparcap_i = name_mat.index('CarbonUD')
         Ss_sparcap = inputs['Ss_sparcap']
-        p_sparcap = inputs['density_sparcap']
+        rho_sparcap = rho_mat[sparcap_i]
 
         bolt_spacing_dia = inputs['bolt_spacing_dia']
         ply_drop_slope = inputs['ply_drop_slope']
@@ -1182,7 +1198,7 @@ class BladeJointSizing(ExplicitComponent):
         L_insert = L_bolt
         mu = 0.5  # eng toolbox says 0.5-0.8 for clean, dry steel.
         V_insert = A_insert * L_insert
-        m_insert = V_insert * p_insert
+        m_insert = V_insert * rho_insert
 
         # geometric properties
         h = 0.6  # m, spar cap height (bolt to bolt)
@@ -1485,7 +1501,7 @@ class  RotorStructure(Group):
         )
         self.add_subsystem("brs", BladeRootSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"]))
 
-        self.add_subsystem("bjs", BladeJointSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"]))
+        self.add_subsystem("bjs", BladeJointSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"], n_mat=self.options["modeling_options"]["materials"]["n_mat"]))
 
         # if modeling_options['rotorse']['FatigueMode'] > 0:
         #     promoteListFatigue = ['r', 'gamma_f', 'gamma_m', 'E', 'Xt', 'Xc', 'x_tc', 'y_tc', 'EIxx', 'EIyy', 'pitch_axis', 'chord', 'layer_name', 'layer_mat', 'definition_layer', 'sc_ss_mats','sc_ps_mats','te_ss_mats','te_ps_mats','rthick']

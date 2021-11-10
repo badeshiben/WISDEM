@@ -3179,45 +3179,71 @@ rotorse.rs.brs.root_M,N*m,[  3358464.28440864 -15972708.60934895        -0.     
 rotorse.rs.brs.s_f,,[2.5],Safety factor
 rotorse.rs.brs.d_f,m,[0.03],Diameter of the fastener
 rotorse.rs.brs.sigma_max,Pa,[6.75e+08],Max stress on bolt
-rotorse.rs.sjs.load_factor,,[1.],
-rotorse.rs.sjs.nprf,,[1.2],
-rotorse.rs.sjs.ny,,[2.],
-rotorse.rs.sjs.ns,,[2.],
-rotorse.rs.sjs.n0,,[1.2],
-rotorse.rs.sjs.nf,,[2.],
-rotorse.rs.sjs.Sp_bolt,Pa,[8.3e+08],
-rotorse.rs.sjs.Sy_bolt,Pa,[9.4e+08],
-rotorse.rs.sjs.Su_bolt,Pa,[1.04e+09],
-rotorse.rs.sjs.Se_bolt,Pa,[1.62e+08],
-rotorse.rs.sjs.E_bolt,Pa,[2.e+11],
-rotorse.rs.sjs.d_bolt,,[0.048],
-rotorse.rs.sjs.L_bolt,m,[1.],
-rotorse.rs.sjs.m_bolt,,[15.15],
-rotorse.rs.sjs.density_insert,kg/m**3,[0.],
-rotorse.rs.sjs.Sy_insert,Pa,[1.65e+09],
-rotorse.rs.sjs.Su_insert,Pa,[1.79e+09],
-rotorse.rs.sjs.Se_insert,Pa,[3.16e+08],
-rotorse.rs.sjs.E_insert,Pa,[2.1e+11],
-rotorse.rs.sjs.mu_joint,Pa,[0.5],
-rotorse.rs.sjs.Ss_sparcap,Pa,[30170000.],
-rotorse.rs.sjs.density_sparcap,kg/m**3,[1600.],
-rotorse.rs.sjs.bolt_spacing_dia,,[3.],
-rotorse.rs.sjs.ply_drop_slope,,[0.125],
-rotorse.rs.sjs.t_adhesive,m,[0.005],
-rotorse.rs.sjs.t_max_sparcap,,[0.25],
-rotorse.rs.sjs.w_nom,m,[0.02],
-rotorse.rs.sjs.t_nom,m,[0.8],
-rotorse.rs.sjs.chord,m,[3.],
-rotorse.rs.sjs.h,m,[0.6],
-rotorse.rs.sjs.L_segment,m,[3.54573],
-rotorse.rs.sjs.eta,,[0.69],
-rotorse.rs.sjs.Mflap_static,N*m,[1640000.],
-rotorse.rs.sjs.Medge_static,N*m,[150000.],
-rotorse.rs.sjs.Fflap_static,N*m,[310000.],
-rotorse.rs.sjs.a,,[0.1965],
-rotorse.rs.sjs.b,,[0.],
-rotorse.rs.sjs.c,,[0.6448],
-rotorse.rs.sjs.itermax,,[20.],
+rotorse.rs.bjs.load_factor,,[1.],
+rotorse.rs.bjs.nprf,,[1.2],
+rotorse.rs.bjs.ny,,[2.],
+rotorse.rs.bjs.ns,,[2.],
+rotorse.rs.bjs.n0,,[1.2],
+rotorse.rs.bjs.nf,,[2.],
+rotorse.rs.bjs.Sp_bolt,Pa,[8.3e+08],
+rotorse.rs.bjs.Sy_bolt,Pa,[9.4e+08],
+rotorse.rs.bjs.Su_bolt,Pa,[1.04e+09],
+rotorse.rs.bjs.Se_bolt,Pa,[1.62e+08],
+rotorse.rs.bjs.E_bolt,Pa,[2.e+11],
+rotorse.rs.bjs.d_bolt,,[0.048],
+rotorse.rs.bjs.L_bolt,m,[1.],
+rotorse.rs.bjs.m_bolt,,[15.15],
+rotorse.rs.bjs.rho_mat,kg/m**3,[1235. 1920. 1850. 1780. 7800. 7850. 7200.  200. 1220. 1150. 1100.],
+rotorse.rs.bjs.Xt_mat,Pa,"[[7.400e+07 7.400e+07 7.400e+07]
+ [1.060e+09 6.630e+07 2.660e+07]
+ [5.450e+07 5.450e+07 2.660e+07]
+ [5.447e+07 5.447e+07 2.660e+07]
+ [4.500e+08 4.500e+08 4.500e+08]
+ [8.140e+08 8.140e+08 8.140e+08]
+ [3.100e+08 3.100e+08 3.100e+08]
+ [6.040e+06 6.040e+06 6.040e+06]
+ [2.236e+09 0.000e+00 0.000e+00]
+ [6.151e+07 6.151e+07 6.151e+07]
+ [6.900e+05 6.900e+05 6.900e+05]]",
+rotorse.rs.bjs.Xy_mat,Pa,"[0.00e+00 0.00e+00 0.00e+00 0.00e+00 3.45e+08 4.85e+08 2.65e+08 0.00e+00
+ 0.00e+00 0.00e+00 0.00e+00]",
+rotorse.rs.bjs.E_mat,Pa,"[[3.440e+09 3.440e+09 3.440e+09]
+ [4.180e+10 1.400e+10 2.630e+09]
+ [2.770e+10 1.365e+10 7.200e+09]
+ [1.360e+10 1.330e+10 1.180e+10]
+ [2.000e+11 2.000e+11 2.000e+11]
+ [2.050e+11 2.050e+11 2.050e+11]
+ [1.180e+11 1.180e+11 1.180e+11]
+ [9.846e+07 9.846e+07 9.846e+07]
+ [1.145e+11 8.390e+09 5.990e+09]
+ [1.000e+06 1.000e+06 1.000e+06]
+ [4.560e+06 4.560e+06 4.560e+06]]",
+rotorse.rs.bjs.density_insert,kg/m**3,[0.],
+rotorse.rs.bjs.Sy_insert,Pa,[1.65e+09],
+rotorse.rs.bjs.Su_insert,Pa,[1.79e+09],
+rotorse.rs.bjs.Se_insert,Pa,[3.16e+08],
+rotorse.rs.bjs.E_insert,Pa,[2.1e+11],
+rotorse.rs.bjs.mu_joint,Pa,[0.5],
+rotorse.rs.bjs.Ss_sparcap,Pa,[30170000.],
+rotorse.rs.bjs.density_sparcap,kg/m**3,[1600.],
+rotorse.rs.bjs.bolt_spacing_dia,,[3.],
+rotorse.rs.bjs.ply_drop_slope,,[0.125],
+rotorse.rs.bjs.t_adhesive,m,[0.005],
+rotorse.rs.bjs.t_max_sparcap,,[0.25],
+rotorse.rs.bjs.w_nom,m,[0.02],
+rotorse.rs.bjs.t_nom,m,[0.8],
+rotorse.rs.bjs.chord,m,[3.],
+rotorse.rs.bjs.h,m,[0.6],
+rotorse.rs.bjs.L_segment,m,[3.54573],
+rotorse.rs.bjs.eta,,[0.69],
+rotorse.rs.bjs.Mflap_static,N*m,[1640000.],
+rotorse.rs.bjs.Medge_static,N*m,[150000.],
+rotorse.rs.bjs.Fflap_static,N*m,[310000.],
+rotorse.rs.bjs.a,,[0.1965],
+rotorse.rs.bjs.b,,[0.],
+rotorse.rs.bjs.c,,[0.6448],
+rotorse.rs.bjs.itermax,,[20.],
+rotorse.rs.bjs.name_mat,Unavailable,"['Gelcoat', 'glassUD', 'glassTri', 'glassDB', 'steel', 'steel_drive', 'cast_iron', 'FOAM', 'CarbonUD', 'resin', 'adhesive']",
 rotorse.rc.blade_length,m,[61.5],blade length
 rotorse.rc.s,,"[0.         0.03448276 0.06896552 0.10344828 0.13793103 0.17241379
  0.20689655 0.24137931 0.27586207 0.31034483 0.34482759 0.37931034
@@ -7757,11 +7783,11 @@ rotorse.rs.constr.constr_flap_f_margin,,[ -2.06480855  -5.50538908 -10.55642787 
 rotorse.rs.constr.constr_edge_f_margin,,[ -0.15360104  -0.50834566  -3.10636178  -7.89229818 -14.12058734],constraint on edge blade frequency such that ratio of 3P/f is above or below gamma with constraint <= 0
 rotorse.rs.brs.d_r,m,[0.],Root fastener circle diameter
 rotorse.rs.brs.ratio,,[0.],Ratio of recommended diameter over actual diameter. It can be constrained to be smaller than 1
-rotorse.rs.sjs.t_joint,m,[0.0804211],Required sparcap thickness at segmentation joint
-rotorse.rs.sjs.w_joint,m,[0.864],Required sparcap width at segmentation joint
-rotorse.rs.sjs.L_transition_joint,m,[0.46272876],Required length to accommodate spar cap size increase at segmentation joint
-rotorse.rs.sjs.n_bolt_joint,,[12.],Required number of bolts for segmentation joint
-rotorse.rs.sjs.m_add_joint,kg,[24.626897],Mass of bolts + inserts minus mass of spar cap cutouts for segmentation joint
+rotorse.rs.bjs.t_joint,m,[0.0804211],Required sparcap thickness at segmentation joint
+rotorse.rs.bjs.w_joint,m,[0.864],Required sparcap width at segmentation joint
+rotorse.rs.bjs.L_transition_joint,m,[0.46272876],Required length to accommodate spar cap size increase at segmentation joint
+rotorse.rs.bjs.n_bolt_joint,,[12.],Required number of bolts for segmentation joint
+rotorse.rs.bjs.m_add_joint,kg,[532.75060607],Mass of bolts + inserts minus mass of spar cap cutouts for segmentation joint
 rotorse.rc.sect_perimeter,m,"[11.12596508 11.31808091 11.20586816 10.70717245 10.34722633 10.33135119
  10.25896782 10.1773573   9.88363715  9.60690667  9.32615605  9.03002693
   8.70872545  8.38582222  8.06156739  7.75256771  7.45669776  7.16482462

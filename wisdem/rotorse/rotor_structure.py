@@ -7,7 +7,8 @@ from wisdem.rotorse import RPM2RS, RS2RPM
 from wisdem.commonse import gravity
 from wisdem.commonse.csystem import DirectionVector
 from wisdem.ccblade.ccblade_component import CCBladeLoads, CCBladeEvaluate
-
+from wisdem.commonse.utilities import arc_length
+from wisdem.commonse.utilities import find_nearest
 
 class BladeCurvature(ExplicitComponent):
     # OpenMDAO component that computes the 3D curvature of the blade
@@ -306,6 +307,12 @@ class RunFrame3DD(ExplicitComponent):
             desc="distribution along blade span of bending moment w.r.t principal axis 2",
         )
         self.add_output(
+            "F2",
+            val=np.zeros(n_span),
+            units="N",
+            desc="distribution along blade span of force w.r.t principal axis 2",
+        )
+        self.add_output(
             "F3",
             val=np.zeros(n_span),
             units="N",
@@ -482,6 +489,7 @@ class RunFrame3DD(ExplicitComponent):
         mshapes_y = mshapes_y[:n_freq2, :]
 
         # shear and bending w.r.t. principal axes
+        F2 = np.r_[-forces.Vz[iCase, 0], forces.Vz[iCase, 1::2]]  # TODO verify if this is correct
         F3 = np.r_[-forces.Nx[iCase, 0], forces.Nx[iCase, 1::2]]
         M1 = np.r_[-forces.Myy[iCase, 0], forces.Myy[iCase, 1::2]]
         M2 = np.r_[-forces.Mzz[iCase, 0], forces.Mzz[iCase, 1::2]]
@@ -505,6 +513,7 @@ class RunFrame3DD(ExplicitComponent):
         outputs["EI22"] = EI22
         outputs["M1"] = M1
         outputs["M2"] = M2
+        outputs["F2"] = F2
         outputs["F3"] = F3
         outputs["alpha"] = alpha
 
@@ -1021,7 +1030,6 @@ class BladeRootSizing(ExplicitComponent):
             desc="Ratio of recommended diameter over actual diameter. It can be constrained to be smaller than 1",
         )
 
-
 class BladeJointSizing(ExplicitComponent):
     """
     Compute the minimum joint size given the blade loading.
@@ -1051,9 +1059,9 @@ class BladeJointSizing(ExplicitComponent):
         Mass of bolts + inserts minus mass of spar cap cutouts for segmentation joint (spar cap size change will add mass too)
     n_bolt_joint : int
         Required number of bolts for segmentation joint
-    t_sparcap_joint : float, [m]
+    t_sc_joint : float, [m]
         Required sparcap thickness at segmentation joint
-    w_sparcap_joint : float, [m]
+    w_sc_joint : float, [m]
         Required sparcap width at segmentation joint
 
     """
@@ -1063,82 +1071,87 @@ class BladeJointSizing(ExplicitComponent):
         self.options.declare("n_mat")
 
     def setup(self):
+
         n_mat = int(self.options["n_mat"])
         rotorse_options = self.options["rotorse_options"]
+        n_layers = rotorse_options["n_layers"]
+        self.nd_span = rotorse_options["nd_span"]
+        self.n_span = n_span = rotorse_options["n_span"]
+        self.n_xy = n_xy = rotorse_options["n_xy"]
+        self.spar_cap_ss = rotorse_options["spar_cap_ss"]
+        self.spar_cap_ps = rotorse_options["spar_cap_ps"]
+        self.layer_name = rotorse_options["layer_name"]
+        self.spar_cap_ss = rotorse_options["spar_cap_ss"]
 
         # safety factors. These will eventually come from the modeling yaml, but are currently hardcoded.
-        self.add_input('load_factor', val=1, units=None)  # do this for inputs that are not available in the yaml
-        self.add_input('nprf', val=1.2,
-                       units=None)  # bolt static safety factor (proof) [-]. If this is too high, it seriously constrains the design. Keep it low, <= 1.2
-        self.add_input('ny', val=2, units=None)
-        self.add_input('ns', val=2, units=None)
-        self.add_input('n0', val=1.2, units=None)
-        self.add_input('nf', val=2, units=None)
+        self.add_input('load_factor', val=1, desc='input load multiplier. 1.35 recommended for DLC6.1')  # I find it better to change the load factor than the safety factors. It prevents limit errors (like divide by zero)
+        self.add_input('nprf', val=1, desc='bolt proof safety factor')  # bolt static safety factor (proof) [-]. If this is too high, it seriously constrains the design. Keep it low, <= 1.5
+        self.add_input('ny', val=2, desc='bolt yield safety factor')
+        self.add_input('ns', val=2, desc='bolt shear safety factor')
+        self.add_input('n0', val=2, desc='bolt separation safety factor')
+        self.add_input('nf', val=2, desc='bolt fatigue safety factor')
 
         # M48 10.9 bolt properties (Shigley p.433) # kf = 3  # metric 10.9, rolled thread. These are hardcoded.
-        self.add_input('Sp_bolt', val=830e6, units='Pa')
-        self.add_input('Sy_bolt', val=940e6, units='Pa')
-        self.add_input('Su_bolt', val=1040e6, units='Pa')
-        self.add_input('Se_bolt', val=162e6, units='Pa')  # (for M1.6-36). Fully corrected so don't need kf
-        self.add_input('E_bolt', val=200e9, units='Pa')  # medium carbon steel
-        self.add_input('d_bolt', val=0.048)
-        self.add_input('L_bolt', val=1, units='m')
-        self.add_input('m_bolt', val=15.15)  # kg, bolt+washer, https://www.portlandbolt.com/technical/tools/bolt-weight-calculator/
+        self.add_input('Sp_bolt', val=830e6, units='Pa', desc='bolt proof strength')
+        self.add_input('Sy_bolt', val=940e6, units='Pa', desc='bolt yield strength')
+        self.add_input('Su_bolt', val=1040e6, units='Pa', desc='bolt ultimate strength')
+        self.add_input('Se_bolt', val=162e6, units='Pa', desc='bolt endurance strength')  # (for M1.6-36). Fully corrected so don't need kf
+        self.add_input('E_bolt', val=200e9, units='Pa', desc='bolt elastic modulus')  # medium carbon steel
+        self.add_input('d_bolt', val=0.048, desc='bolt diameter')
+        self.add_input('L_bolt', val=1, units='m', desc='bolt length')
+        self.add_input('m_bolt', val=15.15, units='kg', desc='bolt+washer mass')  #https://www.portlandbolt.com/technical/tools/bolt-weight-calculator/
 
-        # steel insert material properties. These mostly come from the geometry yaml. rotorse.rs.joint.INPUTNAME. Will all come from materials openmdao component
+        # steel insert material properties. These mostly come from the geometry yaml. 
         # material: Stainless Steel 440A, tempered @315C. Cold worked 304: 515/860. (http://www.matweb.com/search/datasheet_print.aspx?matguid=4f9c4c71102d4cd9b4c52622588e99a0)
-        self.add_discrete_input('name_mat', val=n_mat * [""])
-        self.add_input('rho_mat', val=np.zeros(n_mat), units='kg/m**3')
-        self.add_input('Xt_mat', val=np.zeros((n_mat, 3)), units='Pa')
-        self.add_input('Xy_mat', val=np.zeros(n_mat), units='Pa')
-        self.add_input('E_mat', val=np.zeros((n_mat, 3)), units='Pa')
-        # self.add_input('S_mat', val=np.zeros(n_mat), units='Pa')
-        self.add_input('density_insert', val=0, units='kg/m**3')
-        self.add_input('Sy_insert', val=1650e6, units='Pa')
-        self.add_input('Su_insert', val=1790e6, units='Pa')
-        self.add_input('Se_insert', val=316e6, units='Pa')  # Azom (hardcoded)
-        self.add_input('E_insert', val=210e9, units='Pa')
-        self.add_input('mu_joint', val=0.5, units='Pa')  # eng toolbox says 0.5-0.8 for clean, dry steel (hardcoded)
+        self.add_discrete_input('name_mat', val=n_mat * [""], desc='list of material names')
+        self.add_input('rho_mat', val=np.zeros(n_mat), units='kg/m**3', desc='list of material densities')
+        self.add_input('Xt_mat', val=np.zeros((n_mat, 3)), units='Pa', desc='list of material tensile strengths')
+        self.add_input('Xy_mat', val=np.zeros(n_mat), units='Pa', desc='list of material yield strengths')
+        self.add_input('E_mat', val=np.zeros((n_mat, 3)), units='Pa', desc='list of material elastic moduli')
+        # self.add_input('S_mat', val=np.zeros(n_mat), units='Pa')  # TODO wisdem should load from inputs
+        self.add_input('Se_insert', val=316e6, units='Pa', desc='insert material endurance limit')  # Azom (hardcoded)
+        self.add_input('mu_joint', val=0.5, desc='steel insert friction factor')  # eng toolbox says 0.5-0.8 for clean, dry steel (hardcoded)
 
         # CFRP UD industry standard composite material properties (https://energy.sandia.gov/download/45350/)
-        self.add_input('Ss_sparcap', val=3017e4, units='Pa')  # direction 1: along fibers
-        self.add_input('density_sparcap', val=1600, units='kg/m**3')
+        self.add_input('Ss_sc', val=3017e4, units='Pa', desc='sparcap shear strength')  # direction 1: along fibers TODO: wisdem should load S_mat from inputs
 
         # geometric properties
-        self.add_input('bolt_spacing_dia', val=3)  # units: bolt diameters (hardcoded)
-        self.add_input('ply_drop_slope', val=1 / 8,
-                       units=None)  # Required ply drop slope. max for >45 plies dropped (otherwise 1/3) https://www.sciencedirect.com/science/article/pii/S135983680000038X. (hardcoded)
-        self.add_input('t_adhesive', val=0.005, units='m')  # insert-sparcap adhesive (hardcoded)
-        self.add_input('t_max_sparcap', val=1 / 4)  # maximum spar cap thickness. Units: spar cap height (hardcoded)
-        self.add_input('w_nom', val=0.02, units='m')
-        self.add_input('t_nom', val=0.8, units='m')
-        self.add_input('chord', val=3, units='m')
-        self.add_input('h', val=0.6, units='m')
-        self.add_input('L_segment', val=3.54573, units='m')
-        self.add_input('eta', val=0.69, units=None)
+        self.add_input('i_span', val=20, desc='joint station')  # (hardcoded)
+        self.add_input('bolt_spacing_dia', val=3, desc='joint bolt spacing along sparcap in y')  # units: bolt diameters (hardcoded)
+        self.add_input('ply_drop_slope', val=1 / 8, desc='required ply drop slope')  # max for >45 plies dropped (otherwise 1/3) https://www.sciencedirect.com/science/article/pii/S135983680000038X. (hardcoded)
+        self.add_input('t_adhesive', val=0.005, units='m', desc='insert-sparcap adhesive thickness')  # (hardcoded)
+        self.add_input('t_max_sc', val=1 / 4, desc='maximum spar cap thickness per spar cap height')  # (hardcoded)
+        self.add_input('w_sc', val=0.02, units='m', desc='original spar cap width')
+        self.add_input('t_sc', val=0.8, units='m', desc='original spar cap thickness')
+        self.add_input('chord', val=np.zeros(n_span), units='m', desc='chord length at joint station')
+        self.add_input("layer_thickness", val=np.zeros((n_layers, n_span)), units="m", desc="2D array of the thickness of the layers of the blade structure. The first dimension represents each layer, the second dimension represents each entry along blade span.")
+        self.add_input("layer_start_nd", val=np.zeros((n_layers, n_span)), desc="2D array of the non-dimensional start point defined along the outer profile of a layer. The TE suction side is 0, the TE pressure side is 1. The first dimension represents each layer, the second dimension represents each entry along blade span.")
+        self.add_input("layer_end_nd", val=np.zeros((n_layers, n_span)), desc="2D array of the non-dimensional end point defined along the outer profile of a layer. The TE suction side is 0, the TE pressure side is 1. The first dimension represents each layer, the second dimension represents each entry along blade span.")
+        self.add_input('blade_length', val=np.zeros(n_span), units='m', desc="1D array of cumulative blade length at each station. n_span long")
+        self.add_input("coord_xy_interp", val=np.zeros((n_span, n_xy, 2)), desc="3D array of the non-dimensional x and y airfoil coordinates of the airfoils interpolated along span for n_span stations.")
+        self.add_input("rthick", val=np.zeros(n_span), desc="1D array of the relative thicknesses of the blade defined along span. n_span long")
 
         # blade ultimate loads
-        self.add_input('Mflap_static', val=1.64e6, units='N*m')
-        self.add_input('Medge_static', val=1.5e5, units='N*m')
-        self.add_input('Fflap_static', val=3.1e5, units='N*m')
+        self.add_input("M1", val=np.zeros(n_span), units="N*m", desc="distribution along blade span of ultimate bending moment w.r.t principal axis 1")
+        self.add_input("M2", val=np.zeros(n_span), units="N*m", desc="distribution along blade span of ultimate bending moment w.r.t principal axis 2")
+        self.add_input("F2", val=np.zeros(n_span), units="N", desc="distribution along blade span of ultimate force w.r.t principal axis 2")
 
-        # fatigue load calculating factors
-        self.add_input('a', val=0.1965, units=None)  # (hardcoded)
-        self.add_input('b', val=0, units=None)  # (hardcoded)
-        self.add_input('c', val=0.6448, units=None)  # (hardcoded)
+        # fatigue load calculating factors from https://iopscience.iop.org/article/10.1088/1742-6596/1618/4/042016
+        self.add_input('a', val=0.1965)  # (hardcoded)
+        self.add_input('b', val=0)  # (hardcoded)
+        self.add_input('c', val=0.6448)  # (hardcoded)
 
-        # max # iterations
-        self.add_input('itermax', val=20, units=None)  # (hardcoded)
+        self.add_input('itermax', val=20, desc='max # calculation iterations')  # (hardcoded)
 
-        self.add_output('t_joint', val=0, units='m', desc='Required sparcap thickness at segmentation joint')
-        self.add_output('w_joint', val=0, units='m', desc='Required sparcap width at segmentation joint')
-        self.add_output('L_transition_joint', val=0, units='m',
-                        desc='Required length to accommodate spar cap size increase at segmentation joint')
-        self.add_output('n_bolt_joint', val=0, units=None, desc='Required number of bolts for segmentation joint')
-        self.add_output('m_add_joint', val=0, units='kg',
-                        desc='Mass of bolts + inserts minus mass of spar cap cutouts for segmentation joint')
+        self.add_output('t_sc_joint', val=0, units='m', desc='Required sparcap thickness at joint')
+        self.add_output('w_sc_joint', val=0, units='m', desc='Required sparcap width at joint')
+        self.add_output('L_transition_joint', val=0, units='m', desc='Required length to accommodate spar cap size increase at joint')
+        self.add_output('n_bolt_joint', val=0, desc='Required number of bolts for joint')
+        self.add_output('m_add_joint', val=0, units='kg', desc='Mass of bolts + inserts minus mass of spar cap cutouts at joint')
 
     def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
+
+        # safety factors
         load_factor = inputs['load_factor']
         nprf = inputs['nprf']
         ny = inputs['ny']
@@ -1146,7 +1159,7 @@ class BladeJointSizing(ExplicitComponent):
         n0 = inputs['n0']
         ns = inputs['ns']
 
-        # nDLC61 = inputs['nDLC61']
+        #bolt parameters
         Sp_bolt = inputs['Sp_bolt']
         Sy_bolt = inputs['Sy_bolt']
         Su_bolt = inputs['Su_bolt']
@@ -1156,30 +1169,25 @@ class BladeJointSizing(ExplicitComponent):
         L_bolt = inputs['L_bolt']
         m_bolt = inputs['m_bolt']
 
+        # material parameters
         name_mat = discrete_inputs["name_mat"]
         rho_mat = inputs["rho_mat"]
         Xt_mat = inputs["Xt_mat"]
         Xy_mat = inputs["Xy_mat"]
         E_mat = inputs["E_mat"]
         # S_mat = inputs["S_mat"]  # TODO this needs to be added to the WISDEM input
-
-        insert_i = name_mat.index('steel')
+        insert_i = name_mat.index('stainless_steel')
         rho_insert = rho_mat[insert_i]
         Sy_insert = Xy_mat[insert_i]
-        Sy_insert = Xt_mat[insert_i, 0]
+        Su_insert = Xt_mat[insert_i, 0]
         Se_insert = inputs['Se_insert']
         E_insert = E_mat[insert_i, 0]
         mu = inputs['mu_joint']
+        sc_mat_i = name_mat.index('carbon_uni_industry_baseline')
+        Ss_sc = inputs['Ss_sc']
+        rho_sc = rho_mat[sc_mat_i]
 
-        sparcap_i = name_mat.index('CarbonUD')
-        Ss_sparcap = inputs['Ss_sparcap']
-        rho_sparcap = rho_mat[sparcap_i]
-
-        bolt_spacing_dia = inputs['bolt_spacing_dia']
-        ply_drop_slope = inputs['ply_drop_slope']
-        t_adhesive = inputs['t_adhesive']
-        t_max_sparcap = inputs['t_max_sparcap']
-
+        # Fatigue factors
         a = inputs['a']
         b = inputs['b']
         c = inputs['c']
@@ -1191,43 +1199,56 @@ class BladeJointSizing(ExplicitComponent):
         Lt = L_bolt - Ld
         n_bolt = -2  # initialized
         n_bolt_prev = -1  # initialized
-        bolt_spacing = bolt_spacing_dia * d_bolt
 
         d_insert = d_bolt * 2  # keeping the insert much larger than the bolt reduces bolt loads, which drive the design.
         A_insert = np.pi * (d_insert ** 2 - d_bolt ** 2) / 4
         L_insert = L_bolt
-        mu = 0.5  # eng toolbox says 0.5-0.8 for clean, dry steel.
         V_insert = A_insert * L_insert
         m_insert = V_insert * rho_insert
 
-        # geometric properties
-        h = 0.6  # m, spar cap height (bolt to bolt)
-        chord = 3  # m
+        # geometric properties and calculations
+        i_span = int(inputs['i_span'])
+        t_layer = inputs['layer_thickness']
+        layer_start_nd = inputs['layer_start_nd']
+        layer_end_nd = inputs['layer_end_nd']
+        bolt_spacing_dia = inputs['bolt_spacing_dia']
+        ply_drop_slope = inputs['ply_drop_slope']
+        t_adhesive = inputs['t_adhesive']
+        t_max_sc = inputs['t_max_sc']
+        L_blade = inputs['blade_length']
+        eta = self.nd_span[i_span]
+        chord = inputs['chord'][i_span]
+        L_segment = L_blade[-1] / self.n_span  # m
+        sc_layer_i = self.layer_name.index(self.spar_cap_ss)
+        t_sc = t_layer[sc_layer_i][i_span]  # 0.02258  # TODO spar cap nominal thickness at 0.690
+        bolt_spacing = bolt_spacing_dia * d_bolt
         n_bolt_max = chord // bolt_spacing  # max # bolts that can fit
         # V_adhesive = np.pi * ((d_insert + 2 * t_adhesive) ** 2 - d_insert ** 2) / 4  # m3
         w_hole = d_bolt * 7 / 3
         hi_hole = d_bolt * 2
-        w_nom = 0.8  # spar cap nominal width at 0.690
-        t_nom = 0.02258  # spar cap nominal thickness at 0.690
-        t_max = h * t_max_sparcap  # spar cap max thickness
-        L_segment = 3.54573  # m
+        xy_coord = inputs["coord_xy_interp"][i_span, :, :]
+        t_airfoil = inputs["rthick"][i_span]*chord
+        d_b2b = t_airfoil - t_sc
+        t_max_sc = d_b2b * t_max_sc  # spar cap max thickness
+        # Compute arc length at joint station
+        xy_arc = arc_length(xy_coord)
+        arc_L = xy_arc[-1]
+        w_sc = arc_L * chord * (layer_end_nd[sc_layer_i, i_span] - layer_start_nd[sc_layer_i, i_span])
 
-        # loads, will be WISDEM inputs. For now loosely based on Derek's report at 20m. These loads do not have safety factors applied. Need to apply DLC 1.1/6.1 safety factor (1.1-1.5?)
-        a = 0.1965
-        b = 0
-        c = 0.6448
-        eta = 0.69
+        # Loads
+        Mflap_static = abs(inputs['M1'][i_span]) * load_factor
+        Medge_static = abs(inputs['M2'][i_span]) * load_factor
+        Fflap_static = abs(inputs['F2'][i_span]) * load_factor
+
+        # Fatigue loads. Remember DLC 6.1 static load safety factor = 1.35. Old loads: # Mflap_static = 1.64e6, Fflap_static = 1.5e5, Medge_static = 3.1e5
         kp = a * (1 - eta) ** 2 + b * (1 - eta) + c
-        Mflap_static = 1.64e6 * load_factor  # Nm 50 for e50?
         Mflap_fatigue = Mflap_static * kp  # Nm
-        Fflap_static = 1.5e5 * load_factor  # N
         Fflap_fatigue = Fflap_static * kp  # N
-        Medge_static = 3.1e5 * load_factor  # Nm
         Medge_fatigue = Medge_static * kp  # Nm
 
-        # other parameters
-        itermax = 20  # max loop iterations
+        itermax = int(inputs['itermax'])
 
+        """ Loading calculations begin"""
         # 1- Calculate joint stiffness constant
         k_bolt = Ad * At * E_bolt / (Ad * Lt + At * Ld)  # bolt stiffness
         k_insert = A_insert * E_insert / L_bolt  # material stiffness.
@@ -1243,9 +1264,9 @@ class BladeJointSizing(ExplicitComponent):
         for n_bolt_min in range(3, int(np.ceil(n_bolt_max) // 2 * 2 + 1), 2):
             N = int(np.floor(n_bolt_min / 2))
             N_array = np.linspace(1, N, N)
-            Fax_flap_static_per_bolt = Mflap_static / (h * n_bolt_min)
+            Fax_flap_static_per_bolt = Mflap_static / (d_b2b * n_bolt_min)
             Fax_edge_static_per_bolt = N * Medge_static / (2 * bolt_spacing * np.sum(np.square(N_array)))
-            Fax_flap_fatigue_per_bolt = Mflap_fatigue / (h * n_bolt_min)
+            Fax_flap_fatigue_per_bolt = Mflap_fatigue / (d_b2b * n_bolt_min)
             Fax_edge_fatigue_per_bolt = N * Medge_fatigue / (2 * bolt_spacing * np.sum(np.square(N_array)))
             if Fax_flap_fatigue_per_bolt > Fax_edge_fatigue_per_bolt and Fax_flap_static_per_bolt > Fax_edge_static_per_bolt:
                 break
@@ -1254,8 +1275,8 @@ class BladeJointSizing(ExplicitComponent):
         # Round up to nearest odd(?)
 
         # a- joint static, fatigue loads per spar cap side
-        Fax_flap_static = Mflap_static / h
-        Fax_flap_fatigue = Mflap_fatigue / h
+        Fax_flap_static = Mflap_static / d_b2b
+        Fax_flap_fatigue = Mflap_fatigue / d_b2b
         Fsh_flap_static = Fflap_static / 2
         Fsh_flap_fatigue = Fflap_fatigue / 2
 
@@ -1297,7 +1318,7 @@ class BladeJointSizing(ExplicitComponent):
                                                 1 / 4)
 
             # d - calc #bolts/inserts needed for spar cap to resist insert pull-out
-            n_bolt_pullout = 2 * ns * Fax_flap_static / (Ss_sparcap * np.pi * (d_insert + 2 * t_adhesive))
+            n_bolt_pullout = 2 * ns * Fax_flap_static / (Ss_sc * np.pi * (d_insert + 2 * t_adhesive))
 
             # e - take max  bolts needed as # bolt-insert pairs
             n_bolt = np.ceil(np.max(
@@ -1326,7 +1347,7 @@ class BladeJointSizing(ExplicitComponent):
                 print('Solution oscillating between bolt numbers. Choosing the maximum of these.')
                 seq = itermax
                 for x in range(2, itermax // 2):
-                    if n_bolt_list[0:x] == n_bolt_list[x:2 * x]:
+                    if n_bolt_list[-x:] == n_bolt_list[-2*x:-x]:
                         seq = x
                 n_bolt = max(n_bolt_list[-seq:])
             if n_bolt > n_bolt_max:
@@ -1357,23 +1378,23 @@ class BladeJointSizing(ExplicitComponent):
         # middle of the bolt. Also consider shear at bolt head hole. ***OR, the spar cap can be sized with WISDEM as usual.***
 
         # a- insert shear out.
-        t1 = 2 * Fsh_flap_static * ns / (L_insert * n_bolt * Ss_sparcap)
+        t1 = 2 * Fsh_flap_static * ns / (L_insert * n_bolt * Ss_sc)
 
         # b- shear at bolt head hole. Because carbon fiber is so isotropic, and will fail in shear
-        t2 = Fsh_flap_static * ns / (bolt_spacing * Ss_sparcap * n_bolt) + w_hole * hi_hole / bolt_spacing
+        t2 = Fsh_flap_static * ns / (bolt_spacing * Ss_sc * n_bolt) + w_hole * hi_hole / bolt_spacing
 
         # c-spar cap dimensions
-        t = np.max([t1, t2, t_nom])
-        if t > t_max:
+        t_req_sc = np.max([t1, t2, t_sc])
+        if t_req_sc > t_max_sc:
             print('Warning, spar cap thickness (', t,
                   'm) greater than 1/4 cross section height and will be limited')
-            t = t_max
-        w = np.max([n_bolt * bolt_spacing, w_nom])
+            t = t_max_sc
+        w_req_sc = np.max([n_bolt * bolt_spacing, w_sc])
 
         # 8- once width and thickness are found, the required ply drop length will determine how long the bulge in the spar cap
         # is, and inform spar cap total mass. ***OR, the spar cap can be sized with WISDEM as usual.***
-        h_hole = t / 2 + 7 / 6 * d_bolt
-        dt = t - t_nom
+        h_hole = t_req_sc / 2 + 7 / 6 * d_bolt
+        dt = t_req_sc - t_sc
         L_transition = dt / ply_drop_slope  # hopefully less than 3m or whatever.
         if L_transition > L_segment:
             print('Warning. Segments too short to accommodate ply drop requirements')
@@ -1386,15 +1407,21 @@ class BladeJointSizing(ExplicitComponent):
         V_bolthead_hole_tot = V_bolthead_hole * n_bolt
         V_insert_cutout_tot = np.pi * d_insert ** 2 / 4 * L_insert * n_bolt
         V_cutout = V_insert_cutout_tot + V_bolthead_hole_tot
-        m_cutout = V_cutout * p_sparcap
+        m_cutout = V_cutout * rho_sc
         m_add = m_bolt_tot + m_insert_tot - m_cutout
 
         outputs['L_transition_joint'] = L_transition
-        outputs['t_joint'] = t
-        outputs['w_joint'] = w
+        outputs['t_sc_joint'] = t_req_sc
+        outputs['w_sc_joint'] = w_req_sc
         outputs['n_bolt_joint'] = n_bolt
         outputs['m_add_joint'] = m_add
 
+        print('t_sc_joint', t_req_sc)
+        print('w_sc_joint', w_req_sc)
+        print('n_bolt_joint', n_bolt)
+        print('m_add_joint', m_add)
+        print('L_transition_joint', L_transition)
+        print('joint model done')
 
 class  RotorStructure(Group):
     # OpenMDAO group to compute the blade elastic properties, deflections, and loading
@@ -1501,7 +1528,8 @@ class  RotorStructure(Group):
         )
         self.add_subsystem("brs", BladeRootSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"]))
 
-        self.add_subsystem("bjs", BladeJointSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"], n_mat=self.options["modeling_options"]["materials"]["n_mat"]))
+        self.add_subsystem("bjs", BladeJointSizing(rotorse_options=modeling_options["WISDEM"]["RotorSE"],
+                                                   n_mat=self.options["modeling_options"]["materials"]["n_mat"]))
 
         # if modeling_options['rotorse']['FatigueMode'] > 0:
         #     promoteListFatigue = ['r', 'gamma_f', 'gamma_m', 'E', 'Xt', 'Xc', 'x_tc', 'y_tc', 'EIxx', 'EIyy', 'pitch_axis', 'chord', 'layer_name', 'layer_mat', 'definition_layer', 'sc_ss_mats','sc_ps_mats','te_ss_mats','te_ps_mats','rthick']
@@ -1529,11 +1557,15 @@ class  RotorStructure(Group):
         # Moments to strains
         self.connect("frame.alpha", "strains.alpha")
         self.connect("frame.M1", "strains.M1")
-        #TODO self.connect("frame.M1", "joint.M1")
         self.connect("frame.M2", "strains.M2")
         self.connect("frame.F3", "strains.F3")
         self.connect("frame.EI11", "strains.EI11")
         self.connect("frame.EI22", "strains.EI22")
+
+        # Moments to joint design TODO calculate and connect flapwise force
+        self.connect("frame.F2", "bjs.F2")
+        self.connect("frame.M1", "bjs.M1")
+        self.connect("frame.M2", "bjs.M2")
 
         # Blade distributed deflections to tip deflection
         self.connect("frame.dx", "tip_pos.dx_tip", src_indices=[-1])

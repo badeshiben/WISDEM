@@ -1,7 +1,8 @@
 import numpy as np
-
+import logging
 import wisdem.commonse.utilities as util
 from wisdem.rotorse.geometry_tools.geometry import AirfoilShape
+logger = logging.getLogger("wisdem/weis")
 
 
 def yaml2openmdao(wt_opt, modeling_options, wt_init, opt_options):
@@ -219,7 +220,7 @@ def assign_internal_structure_2d_fem_values(wt_opt, modeling_options, internal_s
                 else:
                     raise ValueError(
                         "Invalid rotation reference for web "
-                        + self.modeling_options["WISDEM"]["RotorSE"]["web_name"][i]
+                        + modeling_options["WISDEM"]["RotorSE"]["web_name"][i]
                         + ". Please check the yaml input file"
                     )
             else:
@@ -264,7 +265,6 @@ def assign_internal_structure_2d_fem_values(wt_opt, modeling_options, internal_s
     layer_name = n_layers * [""]
     layer_mat = n_layers * [""]
     thickness = np.zeros((n_layers, n_span))
-    fiber_orient = np.zeros((n_layers, n_span))
     layer_rotation = np.zeros((n_layers, n_span))
     layer_offset_y_pa = np.zeros((n_layers, n_span))
     layer_width = np.zeros((n_layers, n_span))
@@ -377,7 +377,9 @@ def assign_internal_structure_2d_fem_values(wt_opt, modeling_options, internal_s
                             flag = True
                             break
                     if flag == False:
-                        raise ValueError("Error with layer " + internal_structure_2d_fem["layers"][i]["name"])
+                        raise ValueError("The start position of the layer " + internal_structure_2d_fem["layers"][i]["name"] + 
+                        " is linked to the layer " + internal_structure_2d_fem["layers"][i]["start_nd_arc"]["fixed"] + 
+                        " , but this layer does not exist in the yaml.")
             else:
                 layer_start_nd[i, :] = np.interp(
                     nd_span,
@@ -401,7 +403,9 @@ def assign_internal_structure_2d_fem_values(wt_opt, modeling_options, internal_s
                                 flag = True
                                 break
                         if flag == False:
-                            raise ValueError("Error with layer " + internal_structure_2d_fem["layers"][i]["name"])
+                            raise ValueError("The end position of the layer " + internal_structure_2d_fem["layers"][i]["name"] + 
+                            " is linked to the layer " + internal_structure_2d_fem["layers"][i]["start_nd_arc"]["fixed"] + 
+                            " , but this layer does not exist in the yaml.")
             if "width" in internal_structure_2d_fem["layers"][i]:
                 definition_layer[i] = 7
                 layer_width[i, :] = np.interp(
@@ -1442,6 +1446,8 @@ def assign_material_values(wt_opt, modeling_options, materials):
             roll_mass[i] = materials[i]["roll_mass"]
         if "unit_cost" in materials[i]:
             unit_cost[i] = materials[i]["unit_cost"]
+            if unit_cost[i] == 0.:
+                logger.warning("The material " + name[i] + ' has zero unit cost associated to it.')
         if "waste" in materials[i]:
             waste[i] = materials[i]["waste"]
         if "Xy" in materials[i]:

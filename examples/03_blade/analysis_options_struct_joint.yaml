@@ -38,8 +38,8 @@ constraints:
         tip_deflection:
             flag: True
             margin: 1.134 #1.4175
-#        joint_size_sc:
-#            flag: True
+        t_sc_joint:
+            flag: True
 
 driver:
     optimization:

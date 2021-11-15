@@ -1143,7 +1143,8 @@ class BladeJointSizing(ExplicitComponent):
         # self.add_input('Ss_sc', val=3017e4, units='Pa', desc='sparcap shear strength. [float]')  # direction 1: along fibers TODO: wisdem should load S_mat from inputs
 
         # geometric properties
-        self.add_input('i_span', val=20, desc='joint station. [int]')  # (hardcoded) TODO wisdem will provide if optimizing joint location
+        # self.add_discrete_input('i_span', val=20, desc='joint station. [int]')  # (hardcoded) TODO wisdem will provide if optimizing joint location
+        self.add_input('joint_position', val=0, desc='nondimensionalized joint position along blade')
         self.add_input('bolt_spacing_dia', val=3, desc='joint bolt spacing along sparcap in y. [int]')  # units: bolt diameters (hardcoded)
         self.add_input('ply_drop_slope', val=1 / 8, desc='required ply drop slope. [float]')  # max for >45 plies dropped (otherwise 1/3) https://www.sciencedirect.com/science/article/pii/S135983680000038X. (hardcoded)
         self.add_input('t_adhesive', val=0.005, units='m', desc='insert-sparcap adhesive thickness. [float]')  # (hardcoded)
@@ -1174,6 +1175,8 @@ class BladeJointSizing(ExplicitComponent):
 
         self.add_output('t_sc_joint', val=0, units='m', desc='Required sparcap thickness at joint. [float]')
         self.add_output('w_sc_joint', val=0, units='m', desc='Required sparcap width at joint. [float]')
+        self.add_output('w_sc_ratio', val=0, desc='Ratio of joint-required to nominal spar cap width')
+        self.add_output('t_sc_ratio', val=0, desc='Ratio of joint-required to nominal spar cap thickness')
         # TODO combine t,w into joint_size_sc array (RATIO OF required to nominal). and output them.
         self.add_output('L_transition_joint', val=0, units='m', desc='Required length to accommodate spar cap size increase at joint. [float]')
         self.add_output('n_bolt_joint', val=0, desc='Required number of bolts for joint. [float]')
@@ -1238,7 +1241,9 @@ class BladeJointSizing(ExplicitComponent):
         m_insert = V_insert * rho_insert
 
         # geometric properties and calculations
-        i_span = int(inputs['i_span'])
+        # i_span = int(inputs['i_span'])
+        joint_position = inputs['joint_position']
+        i_span = util.find_nearest(self.nd_span, joint_position)
         t_layer = inputs['layer_thickness']
         layer_start_nd = inputs['layer_start_nd']
         layer_end_nd = inputs['layer_end_nd']
@@ -1250,7 +1255,7 @@ class BladeJointSizing(ExplicitComponent):
         eta = self.nd_span[i_span]  # joint location
         chord = inputs['chord'][i_span]
         L_segment = L_blade[-1] / self.n_span  # m
-        sc_layer_i = self.layer_name.index(self.spar_cap_ss)
+        sc_layer_i = self.layer_name.index(self.spar_cap_ss) # TODO figure out if it's ok to only consider the ss sparcap dimensions as inputs. WIll this mess up the optimization?
         t_sc = t_layer[sc_layer_i][i_span]
         bolt_spacing = bolt_spacing_dia * d_bolt
         n_bolt_max = chord // bolt_spacing  # max # bolts that can fit
@@ -1428,11 +1433,13 @@ class BladeJointSizing(ExplicitComponent):
 
         # c-spar cap dimensions
         t_req_sc = np.max([t1, t2, t_sc])
-        if t_req_sc > t_max_sc:
-            print('Warning, spar cap thickness (', t_req_sc,
-                  'm) greater than 1/4 cross section height and will be limited')
-            t_req_sc = t_max_sc
+        # if t_req_sc > t_max_sc:  # already constrained in analysis_schema.yaml
+        #     print('Warning, spar cap thickness (', t_req_sc,
+        #           'm) greater than 1/4 cross section height and will be limited')
+        #     t_req_sc = t_max_sc
         w_req_sc = np.max([n_bolt * bolt_spacing, w_sc])  # required width driven by number of bolts
+        if w_req_sc > w_sc:
+            print('Warning, required spar cap width of ', w_req_sc, ' is greater than nominal. Update input files')
 
         # 8- once width and thickness are found, the required ply drop length will determine how long the bulge in the spar cap
         # is, and inform spar cap total mass. ***OR, the spar cap could be sized with WISDEM as usual.***
@@ -1456,11 +1463,15 @@ class BladeJointSizing(ExplicitComponent):
         outputs['L_transition_joint'] = L_transition
         outputs['t_sc_joint'] = t_req_sc
         outputs['w_sc_joint'] = w_req_sc
+        outputs['t_sc_ratio'] = t_sc_ratio = t_req_sc/t_sc
+        outputs['w_sc_ratio'] = w_sc_ratio = w_req_sc / w_sc
         outputs['n_bolt_joint'] = n_bolt
         outputs['m_add_joint'] = m_add
 
         print('t_sc_joint', t_req_sc)
         print('w_sc_joint', w_req_sc)
+        print('t_sc_ratio', t_sc_ratio)
+        print('w_sc_ratio', w_sc_ratio)
         print('n_bolt_joint', n_bolt)
         print('m_add_joint', m_add)
         print('L_transition_joint', L_transition)

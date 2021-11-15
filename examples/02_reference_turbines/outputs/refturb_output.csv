@@ -5040,7 +5040,7 @@ rotorse.rs.bjs.S_mat,Pa,"[[0.0000e+00 0.0000e+00 0.0000e+00]
  [0.0000e+00 0.0000e+00 0.0000e+00]]",
 rotorse.rs.bjs.Se_insert,Pa,[3.16e+08],insert material endurance limit. [float]
 rotorse.rs.bjs.mu_joint,,[0.5],steel insert friction factor. [float]
-rotorse.rs.bjs.i_span,,[20.],joint station. [int]
+rotorse.rs.bjs.joint_position,,[0.7],nondimensionalized joint position along blade
 rotorse.rs.bjs.bolt_spacing_dia,,[3.],joint bolt spacing along sparcap in y. [int]
 rotorse.rs.bjs.ply_drop_slope,,[0.125],required ply drop slope. [float]
 rotorse.rs.bjs.t_adhesive,m,[0.005],insert-sparcap adhesive thickness. [float]
@@ -11802,6 +11802,8 @@ rotorse.rs.brs.d_r,m,[5.42953948],Root fastener circle diameter
 rotorse.rs.brs.ratio,,[1.21779511],Ratio of recommended diameter over actual diameter. It can be constrained to be smaller than 1
 rotorse.rs.bjs.t_sc_joint,m,[0.08112656],Required sparcap thickness at joint. [float]
 rotorse.rs.bjs.w_sc_joint,m,[1.53216],Required sparcap width at joint. [float]
+rotorse.rs.bjs.w_sc_ratio,,[1.9152],Ratio of joint-required to nominal spar cap width
+rotorse.rs.bjs.t_sc_ratio,,[3.59223666],Ratio of joint-required to nominal spar cap thickness
 rotorse.rs.bjs.L_transition_joint,m,[0.46834164],Required length to accommodate spar cap size increase at joint. [float]
 rotorse.rs.bjs.n_bolt_joint,,[21.28],Required number of bolts for joint. [float]
 rotorse.rs.bjs.m_add_joint,kg,[944.62608624],Mass of bolts + inserts minus mass of spar cap cutouts at joint. [float]

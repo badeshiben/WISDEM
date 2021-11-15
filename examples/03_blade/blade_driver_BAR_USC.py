@@ -22,7 +22,7 @@ if MPI:
 else:
     rank = 0
 
-if rank == 0:
+if rank == 0:git
     print(
         "RUN COMPLETED. RESULTS ARE AVAILABLE HERE: "
         + os.path.join(mydir, analysis_options["general"]["folder_output"])

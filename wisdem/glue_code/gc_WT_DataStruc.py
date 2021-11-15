@@ -2827,6 +2827,12 @@ class Materials(om.Group):
             desc="2D array of the Ultimate Compressive Strength (UCS) of the materials. Each row represents a material, the three columns represent Xc12, Xc13 and Xc23.",
         )
         ivc.add_output(
+            "S",
+            val=np.zeros([n_mat, 3]),
+            units="Pa",
+            desc="2D array of the Ultimate Shear Strength (USS) of the materials. Each row represents a material, the three columns represent S12, S13 and S23.",
+        )
+        ivc.add_output(
             "sigma_y",
             val=np.zeros(n_mat),
             units="Pa",

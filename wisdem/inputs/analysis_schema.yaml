@@ -844,6 +844,12 @@ properties:
                                 default: 1.4175 #1.35*1.05
                                 minimum: 1.0
                                 maximum: 10.0
+#                    joint_size:
+#                        type: object
+#                        default: {}
+#                        description: xxxxx If not defined, just set to false...add description
+#                        properties:
+#                            flag: *flag
                     rail_transport:
                         type: object
                         default: {}

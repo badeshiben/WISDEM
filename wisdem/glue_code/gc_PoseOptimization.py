@@ -1080,6 +1080,13 @@ class PoseOptimization(object):
                 print(
                     "WARNING: the tip deflection is set to be constrained, but spar caps thickness is not an active design variable. The constraint is not enforced."
                 )
+        # if blade_constr["joint_size_sc"]["flag"]:
+        #     if blade_opt["structure"]["spar_cap_ss"]["flag"] or blade_opt["structure"]["spar_cap_ps"]["flag"]:
+        #         wt_opt.model.add_constraint("rotorse.rs.bjs.joint_size_sc", upper=1.0)  # TODO add sparcap width and thickness. Could pack into array if upper can. Or just do two separately. Fine if they are always enforced together
+        #     else:
+        #         print(
+        #             "WARNING: the spar cap thickness and width are set to be constrained, but spar caps thickness is not an active design variable. The constraint is not enforced."
+        #         )
 
         if blade_constr["chord"]["flag"]:
             if blade_opt["aero_shape"]["chord"]["flag"]:

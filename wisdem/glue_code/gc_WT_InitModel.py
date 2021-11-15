@@ -1388,6 +1388,7 @@ def assign_material_values(wt_opt, modeling_options, materials):
     nu = np.zeros([n_mat, 3])
     Xt = np.zeros([n_mat, 3])
     Xc = np.zeros([n_mat, 3])
+    S = np.zeros([n_mat, 3])
     sigma_y = np.zeros(n_mat)
     m = np.ones(n_mat)
     A = np.zeros(n_mat)
@@ -1423,12 +1424,15 @@ def assign_material_values(wt_opt, modeling_options, materials):
                 Xt[i, :] = np.ones(3) * materials[i]["Xt"]
             if "Xc" in materials[i]:
                 Xc[i, :] = np.ones(3) * materials[i]["Xc"]
+            if "S" in materials[i]:
+                S[i, :] = np.ones(3) * materials[i]["S"]
         elif orth[i] == 1:
             E[i, :] = materials[i]["E"]
             G[i, :] = materials[i]["G"]
             nu[i, :] = materials[i]["nu"]
             Xt[i, :] = materials[i]["Xt"]
             Xc[i, :] = materials[i]["Xc"]
+            S[i, :] = materials[i]["S"]
 
         else:
             raise ValueError("The flag orth must be set to either 0 or 1. Error in material " + name[i])
@@ -1468,6 +1472,7 @@ def assign_material_values(wt_opt, modeling_options, materials):
     wt_opt["materials.G"] = G
     wt_opt["materials.Xt"] = Xt
     wt_opt["materials.Xc"] = Xc
+    wt_opt["materials.S"] = S
     wt_opt["materials.nu"] = nu
     wt_opt["materials.wohler_exp"] = m
     wt_opt["materials.wohler_intercept"] = A

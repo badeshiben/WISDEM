@@ -162,7 +162,7 @@ class WT_RNTA(om.Group):
             self.connect("materials.Xt", "rotorse.rs.bjs.Xt_mat")
             self.connect("materials.sigma_y", "rotorse.rs.bjs.Xy_mat")
             self.connect("materials.E", "rotorse.rs.bjs.E_mat")
-            # self.connect("materials.S", "rotorse.rs.bjs.S_mat")
+            self.connect("materials.S", "rotorse.rs.bjs.S_mat")
             self.connect("blade.pa.chord_param", "rotorse.rs.bjs.chord")
             self.connect("blade.high_level_blade_props.r_blade", "rotorse.rs.bjs.blade_length")
             self.connect("blade.internal_structure_2d_fem.layer_thickness", "rotorse.rs.bjs.layer_thickness")
@@ -184,7 +184,7 @@ class WT_RNTA(om.Group):
             self.connect("blade.internal_structure_2d_fem.definition_layer", "rotorse.rc.definition_layer")
             self.connect("blade.internal_structure_2d_fem.web_start_nd", "rotorse.rc.web_start_nd")
             self.connect("blade.internal_structure_2d_fem.web_end_nd", "rotorse.rc.web_end_nd")
-            self.connect("blade.internal_structure_2d_fem.joint_position", "rotorse.rc.joint_position")
+            self.connect("blade.internal_structure_2d_fem.joint_position", "rotorse.rc.joint_position")  # TODO nondimensional joint location
             self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.rc.joint_mass")
             self.connect("blade.internal_structure_2d_fem.joint_cost", "rotorse.rc.joint_cost")
             self.connect("materials.name", "rotorse.rc.mat_name")

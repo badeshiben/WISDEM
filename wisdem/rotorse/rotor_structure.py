@@ -1135,15 +1135,15 @@ class BladeJointSizing(ExplicitComponent):
         self.add_input('Xt_mat', val=np.zeros((n_mat, 3)), units='Pa', desc='list of material tensile strengths. [(n_mat x 3) 2D array of float]')
         self.add_input('Xy_mat', val=np.zeros(n_mat), units='Pa', desc='list of material yield strengths. [(n_mat x 3) 1D array of float]')
         self.add_input('E_mat', val=np.zeros((n_mat, 3)), units='Pa', desc='list of material elastic moduli. [(n_mat x 3) list of float]')
-        # self.add_input('S_mat', val=np.zeros(n_mat), units='Pa')  # TODO wisdem should load from inputs
+        self.add_input('S_mat', val=np.zeros((n_mat, 3)), units='Pa')  # TODO wisdem should load from inputs
         self.add_input('Se_insert', val=316e6, units='Pa', desc='insert material endurance limit. [float]')  # Azom (hardcoded)
         self.add_input('mu_joint', val=0.5, desc='steel insert friction factor. [float]')  # eng toolbox says 0.5-0.8 for clean, dry steel (hardcoded)
 
         # CFRP UD industry standard composite material properties (https://energy.sandia.gov/download/45350/)
-        self.add_input('Ss_sc', val=3017e4, units='Pa', desc='sparcap shear strength. [float]')  # direction 1: along fibers TODO: wisdem should load S_mat from inputs
+        # self.add_input('Ss_sc', val=3017e4, units='Pa', desc='sparcap shear strength. [float]')  # direction 1: along fibers TODO: wisdem should load S_mat from inputs
 
         # geometric properties
-        self.add_input('i_span', val=20, desc='joint station. [int]')  # (hardcoded)
+        self.add_input('i_span', val=20, desc='joint station. [int]')  # (hardcoded) TODO wisdem will provide if optimizing joint location
         self.add_input('bolt_spacing_dia', val=3, desc='joint bolt spacing along sparcap in y. [int]')  # units: bolt diameters (hardcoded)
         self.add_input('ply_drop_slope', val=1 / 8, desc='required ply drop slope. [float]')  # max for >45 plies dropped (otherwise 1/3) https://www.sciencedirect.com/science/article/pii/S135983680000038X. (hardcoded)
         self.add_input('t_adhesive', val=0.005, units='m', desc='insert-sparcap adhesive thickness. [float]')  # (hardcoded)
@@ -1174,6 +1174,7 @@ class BladeJointSizing(ExplicitComponent):
 
         self.add_output('t_sc_joint', val=0, units='m', desc='Required sparcap thickness at joint. [float]')
         self.add_output('w_sc_joint', val=0, units='m', desc='Required sparcap width at joint. [float]')
+        # TODO combine t,w into joint_size_sc array (RATIO OF required to nominal). and output them.
         self.add_output('L_transition_joint', val=0, units='m', desc='Required length to accommodate spar cap size increase at joint. [float]')
         self.add_output('n_bolt_joint', val=0, desc='Required number of bolts for joint. [float]')
         self.add_output('m_add_joint', val=0, units='kg', desc='Mass of bolts + inserts minus mass of spar cap cutouts at joint. [float]')
@@ -1204,7 +1205,7 @@ class BladeJointSizing(ExplicitComponent):
         Xt_mat = inputs["Xt_mat"]
         Xy_mat = inputs["Xy_mat"]
         E_mat = inputs["E_mat"]
-        # S_mat = inputs["S_mat"]  # TODO this needs to be added to the WISDEM input
+        S_mat = inputs["S_mat"]  # TODO this needs to be added to the WISDEM input
         insert_i = name_mat.index('stainless_steel')
         rho_insert = rho_mat[insert_i]
         Sy_insert = Xy_mat[insert_i]
@@ -1213,7 +1214,8 @@ class BladeJointSizing(ExplicitComponent):
         E_insert = E_mat[insert_i, 0]
         mu = inputs['mu_joint']
         sc_mat_i = name_mat.index('carbon_uni_industry_baseline')
-        Ss_sc = inputs['Ss_sc']
+        Ss_sc = S_mat[sc_mat_i, 0]
+        # Ss_sc = inputs['Ss_sc']
         rho_sc = rho_mat[sc_mat_i]
 
         # Fatigue factors

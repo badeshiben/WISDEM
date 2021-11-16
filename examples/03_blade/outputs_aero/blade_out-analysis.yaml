@@ -70,6 +70,7 @@ constraints:
         strains_te_ss: {flag: false, max: 0.004, index_start: 0, index_end: 8}
         strains_te_ps: {flag: false, max: 0.004, index_start: 0, index_end: 8}
         tip_deflection: {flag: false, margin: 1.4175}
+        t_sc_joint: {flag: false}
         rail_transport: {flag: false, 8_axle: false, 4_axle: false}
         frequency: {flap_3P: false, edge_3P: false}
         moment_coefficient: {flag: false, min: 0.15, max: 0.15}

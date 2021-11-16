@@ -119,3 +119,11 @@ Thumbs.db
 # IntelliJ Things #
 ####################
 .idea/
+
+# example outputs
+####################
+examples/02_reference_turbines/outputs
+examples/03_blade/outputs
+examples/03_blade/outputs_aero
+examples/03_blade/outputs_aerostruct
+examples/03_blade/outputs_struct

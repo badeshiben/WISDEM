@@ -119,7 +119,8 @@ class WT_RNTA(om.Group):
             self.connect("blade.internal_structure_2d_fem.web_start_nd", "rotorse.re.precomp.web_start_nd")
             self.connect("blade.internal_structure_2d_fem.web_end_nd", "rotorse.re.precomp.web_end_nd")
             self.connect("blade.internal_structure_2d_fem.joint_position", "rotorse.re.precomp.joint_position")
-            self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.re.precomp.joint_mass")
+            self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.re.precomp.joint_mass")  # TODO figure out how to load joint mass from bjs to re.precomp and rc
+            # self.connect("rotorse.rs.bjs.joint_mass", "rotorse.re.precomp.joint_mass")
             self.connect("materials.name", "rotorse.re.precomp.mat_name")
             self.connect("materials.orth", "rotorse.re.precomp.orth")
             self.connect("materials.E", "rotorse.re.precomp.E")

@@ -153,10 +153,13 @@ def create_all_plots(
             s_opt_sc = yaml_data["blade.opt_var.s_opt_spar_cap_ss"]
             sc_opt = yaml_data["blade.opt_var.spar_cap_ss_opt"] * 1e3
             n_layers = yaml_data["blade.ps.layer_thickness_param"].shape[0]
+            print(n_layers)
+            print(label)
             ilayer = None
             if ilayer is None:
                 for i in range(n_layers):
                     layer_name = modeling_options["WISDEM"]["RotorSE"]["layer_name"][i]
+                    print(layer_name)
                     if modeling_options["WISDEM"]["RotorSE"]["spar_cap_ss"] == layer_name:
                         ilayer = i
             axsc.plot(
@@ -202,60 +205,61 @@ def create_all_plots(
         pass
 
     # Trailing edge reinforcements
-    try:
-        fte, axte = plt.subplots(1, 1, figsize=(5.3, 4))
-
-        for idx, (yaml_data, label) in enumerate(zip(list_of_sims, list_of_labels)):
-            s_opt_te = yaml_data["blade.opt_var.s_opt_te_ss"]
-            te_opt = yaml_data["blade.opt_var.te_ss_opt"] * 1e3
-            n_layers = yaml_data["blade.ps.layer_thickness_param"].shape[0]
-            ilayer = None
-            if ilayer is None:
-                for i in range(n_layers):
-                    layer_name = modeling_options["WISDEM"]["RotorSE"]["layer_name"][i]
-                    if modeling_options["WISDEM"]["RotorSE"]["te_ss"] == layer_name:
-                        ilayer = i
-            axte.plot(
-                yaml_data["blade.outer_shape_bem.s"],
-                yaml_data["blade.ps.layer_thickness_param"][ilayer, :] * 1e3,
-                "-",
-                color=colors[idx],
-                label=label,
-            )
-            axte.plot(s_opt_te, te_opt, "o", color=colors[idx], markersize=3)
-
-        s_opt_te = list_of_sims[0]["blade.outer_shape_bem.s"]
-        te_opt = list_of_sims[0]["blade.ps.layer_thickness_param"][ilayer, :] * 1e3
-        axte.plot(
-            s_opt_te,
-            np.array(analysis_options["design_variables"]["blade"]["structure"]["te_ss"]["max_decrease"])
-            * te_opt,
-            ":o",
-            color=colors[idx + 1],
-            markersize=3,
-            label="Bounds",
-        )
-        axte.plot(
-            s_opt_te,
-            np.array(analysis_options["design_variables"]["blade"]["structure"]["te_ss"]["max_increase"])
-            * te_opt,
-            ":o",
-            color=colors[idx + 1],
-            markersize=3,
-        )
-
-        if mult_flag:
-            axte.legend(fontsize=font_size)
-        plt.xlabel("Blade Nondimensional Span [-]", fontsize=font_size + 2, fontweight="bold")
-        plt.ylabel("TE Reinforcement Thickness [mm]", fontsize=font_size + 2, fontweight="bold")
-        plt.xticks(fontsize=font_size)
-        plt.yticks(fontsize=font_size)
-        plt.grid(color=[0.8, 0.8, 0.8], linestyle="--")
-        plt.subplots_adjust(bottom=0.15, left=0.15)
-        fig_name = "te_opt" + extension
-        fte.savefig(os.path.join(folder_output, fig_name), pad_inches=0.1, bbox_inches="tight")
-    except KeyError:
-        pass
+    # try:
+    #     fte, axte = plt.subplots(1, 1, figsize=(5.3, 4))
+    #
+    #     for idx, (yaml_data, label) in enumerate(zip(list_of_sims, list_of_labels)):
+    #         s_opt_te = yaml_data["blade.opt_var.s_opt_te_ss"]
+    #         te_opt = yaml_data["blade.opt_var.te_ss_opt"] * 1e3
+    #         n_layers = yaml_data["blade.ps.layer_thickness_param"].shape[0]
+    #         ilayer = None
+    #         if ilayer is None:
+    #             for i in range(n_layers):
+    #                 layer_name = modeling_options["WISDEM"]["RotorSE"]["layer_name"][i]
+    #                 if modeling_options["WISDEM"]["RotorSE"]["te_ss"] == layer_name:
+    #                     ilayer = i
+    #         print('*******DEBUGGING********', label)
+    #         axte.plot(
+    #             yaml_data["blade.outer_shape_bem.s"],
+    #             yaml_data["blade.ps.layer_thickness_param"][ilayer, :] * 1e3,
+    #             "-",
+    #             color=colors[idx],
+    #             label=label,
+    #         )
+    #         axte.plot(s_opt_te, te_opt, "o", color=colors[idx], markersize=3)
+    #
+    #     s_opt_te = list_of_sims[0]["blade.outer_shape_bem.s"]
+    #     te_opt = list_of_sims[0]["blade.ps.layer_thickness_param"][ilayer, :] * 1e3
+    #     axte.plot(
+    #         s_opt_te,
+    #         np.array(analysis_options["design_variables"]["blade"]["structure"]["te_ss"]["max_decrease"])
+    #         * te_opt,
+    #         ":o",
+    #         color=colors[idx + 1],
+    #         markersize=3,
+    #         label="Bounds",
+    #     )
+    #     axte.plot(
+    #         s_opt_te,
+    #         np.array(analysis_options["design_variables"]["blade"]["structure"]["te_ss"]["max_increase"])
+    #         * te_opt,
+    #         ":o",
+    #         color=colors[idx + 1],
+    #         markersize=3,
+    #     )
+    #
+    #     if mult_flag:
+    #         axte.legend(fontsize=font_size)
+    #     plt.xlabel("Blade Nondimensional Span [-]", fontsize=font_size + 2, fontweight="bold")
+    #     plt.ylabel("TE Reinforcement Thickness [mm]", fontsize=font_size + 2, fontweight="bold")
+    #     plt.xticks(fontsize=font_size)
+    #     plt.yticks(fontsize=font_size)
+    #     plt.grid(color=[0.8, 0.8, 0.8], linestyle="--")
+    #     plt.subplots_adjust(bottom=0.15, left=0.15)
+    #     fig_name = "te_opt" + extension
+    #     fte.savefig(os.path.join(folder_output, fig_name), pad_inches=0.1, bbox_inches="tight")
+    # except KeyError:
+    #     pass
 
     # Skins
     try:

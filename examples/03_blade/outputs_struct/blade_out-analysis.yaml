@@ -4,8 +4,8 @@ design_variables:
         structure:
             spar_cap_ss: {flag: true, n_opt: 4, max_decrease: 0.7, max_increase: 1.3, index_start: 1, index_end: 3}
             spar_cap_ps: {flag: true, equal_to_suction: true, n_opt: 4, max_decrease: 0.7, max_increase: 1.3, index_start: 1, index_end: 3}
-            te_ss: {flag: true, n_opt: 4, max_decrease: 0.7, max_increase: 1.3, index_start: 1, index_end: 3}
-            te_ps: {flag: true, equal_to_suction: true, n_opt: 4, max_decrease: 0.7, max_increase: 1.3, index_start: 1, index_end: 3}
+            te_ss: {flag: false, n_opt: 30, max_decrease: 0.5, max_increase: 1.5, index_start: 0, index_end: 8}
+            te_ps: {flag: false, equal_to_suction: true, n_opt: 30, max_decrease: 0.5, max_increase: 1.5, index_start: 0, index_end: 8}
         aero_shape:
             twist: {flag: false, inverse: false, n_opt: 30, max_decrease: 0.1, max_increase: 0.1, index_start: 0, index_end: 8}
             chord: {flag: false, n_opt: 30, max_decrease: 0.5, max_increase: 1.5, index_start: 0, index_end: 8}
@@ -64,9 +64,10 @@ constraints:
     blade:
         strains_spar_cap_ss: {flag: true, max: 0.0035, index_start: 1, index_end: 3}
         strains_spar_cap_ps: {flag: true, max: 0.0035, index_start: 1, index_end: 3}
-        strains_te_ss: {flag: true, max: 0.0035, index_start: 1, index_end: 3}
-        strains_te_ps: {flag: true, max: 0.0035, index_start: 1, index_end: 3}
         tip_deflection: {flag: true, margin: 1.134}
+        t_sc_joint: {flag: true}
+        strains_te_ss: {flag: false, max: 0.004, index_start: 0, index_end: 8}
+        strains_te_ps: {flag: false, max: 0.004, index_start: 0, index_end: 8}
         rail_transport: {flag: false, 8_axle: false, 4_axle: false}
         stall: {flag: false, margin: 0.05233}
         chord: {flag: false, max: 4.75}
@@ -129,7 +130,7 @@ constraints:
         global_buckling: *id004
         shell_buckling: *id005
 driver:
-    optimization: {flag: true, tol: 0.001, max_iter: 2, solver: SLSQP, step_size: 0.001, form: forward, max_major_iter: 10, max_minor_iter: 100, max_function_calls: 100000, debug_print: false}
+    optimization: {flag: true, tol: 0.001, max_iter: 10, solver: SLSQP, step_size: 0.001, form: forward, max_major_iter: 10, max_minor_iter: 100, max_function_calls: 100000, debug_print: false}
     design_of_experiments: {flag: false, run_parallel: true, generator: Uniform, num_samples: 5, seed: 2, levels: 2, criterion: None, iterations: 2, debug_print: false}
     step_size_study:
         flag: false

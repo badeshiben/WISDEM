@@ -1118,7 +1118,7 @@ class BladeJointSizing(ExplicitComponent):
         self.add_input('n0', val=2, desc='bolt separation safety factor. [float]')
         self.add_input('nf', val=2, desc='bolt fatigue safety factor. [float]')
 
-        # M48 10.9 bolt properties (Shigley p.433) # kf = 3  # metric 10.9, rolled thread. These are hardcoded.
+        # M48 10.9 bolt properties (Shigley p.433) # kf = 3  # metric 10.9, rolled thread. These are hardcoded. TODO try M36. Could ask AB.
         self.add_input('Sp_bolt', val=830e6, units='Pa', desc='bolt proof strength. [float]')
         self.add_input('Sy_bolt', val=940e6, units='Pa', desc='bolt yield strength. [float]')
         self.add_input('Su_bolt', val=1040e6, units='Pa', desc='bolt ultimate strength. [float]')
@@ -1180,7 +1180,7 @@ class BladeJointSizing(ExplicitComponent):
         # TODO combine t,w into joint_size_sc array (RATIO OF required to nominal). and output them.
         self.add_output('L_transition_joint', val=0, units='m', desc='Required length to accommodate spar cap size increase at joint. [float]')
         self.add_output('n_bolt_joint', val=0, desc='Required number of bolts for joint. [float]')
-        self.add_output('m_add_joint', val=0, units='kg', desc='Mass of bolts + inserts minus mass of spar cap cutouts at joint. [float]')
+        self.add_output('joint_mass', val=0, units='kg', desc='Mass of bolts + inserts minus mass of spar cap cutouts at joint. [float]')
 
     def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
 
@@ -1459,6 +1459,11 @@ class BladeJointSizing(ExplicitComponent):
         V_cutout = V_insert_cutout_tot + V_bolthead_hole_tot
         m_cutout = V_cutout * rho_sc
         m_add = m_bolt_tot + m_insert_tot - m_cutout
+        ### TESTING WITHOUT JOINT BELOW
+        # m_add = 0
+        # t_req_sc = t_sc
+        # w_req_sc = w_sc
+        ### REMOVE ABOVE WHEN DONE
         t_sc_ratio = t_req_sc / t_sc
         w_sc_ratio = w_req_sc / w_sc
 
@@ -1468,14 +1473,14 @@ class BladeJointSizing(ExplicitComponent):
         outputs['t_sc_ratio_joint'] = t_sc_ratio
         outputs['w_sc_ratio_joint'] = w_sc_ratio
         outputs['n_bolt_joint'] = n_bolt
-        outputs['m_add_joint'] = m_add
+        outputs['joint_mass'] = m_add
 
         print('t_sc_joint', t_req_sc)
         print('w_sc_joint', w_req_sc)
         print('t_sc_ratio_joint', t_sc_ratio)
         print('w_sc_ratio_joint', w_sc_ratio)
         print('n_bolt_joint', n_bolt)
-        print('m_add_joint', m_add)
+        print('joint_mass_adder', m_add)
         print('L_transition_joint', L_transition)
         print('joint model done')
 

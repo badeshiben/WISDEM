@@ -119,8 +119,8 @@ class WT_RNTA(om.Group):
             self.connect("blade.internal_structure_2d_fem.web_start_nd", "rotorse.re.precomp.web_start_nd")
             self.connect("blade.internal_structure_2d_fem.web_end_nd", "rotorse.re.precomp.web_end_nd")
             self.connect("blade.internal_structure_2d_fem.joint_position", "rotorse.re.precomp.joint_position")
-            self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.re.precomp.joint_mass")  # TODO figure out how to load joint mass from bjs to re.precomp and rc
-            # self.connect("rotorse.rs.bjs.joint_mass", "rotorse.re.precomp.joint_mass")
+            # self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.re.precomp.joint_mass")  # TODO figure out how to load joint mass from bjs to re.precomp and rc
+            self.connect("rotorse.rs.bjs.joint_mass", "rotorse.re.precomp.joint_mass")
             self.connect("materials.name", "rotorse.re.precomp.mat_name")
             self.connect("materials.orth", "rotorse.re.precomp.orth")
             self.connect("materials.E", "rotorse.re.precomp.E")
@@ -166,7 +166,7 @@ class WT_RNTA(om.Group):
             self.connect("materials.S", "rotorse.rs.bjs.S_mat")
             self.connect("blade.pa.chord_param", "rotorse.rs.bjs.chord")
             self.connect("blade.high_level_blade_props.r_blade", "rotorse.rs.bjs.blade_length")
-            self.connect("blade.internal_structure_2d_fem.layer_thickness", "rotorse.rs.bjs.layer_thickness")
+            self.connect("blade.ps.layer_thickness_param", "rotorse.rs.bjs.layer_thickness")
             self.connect("blade.internal_structure_2d_fem.layer_start_nd", "rotorse.rs.bjs.layer_start_nd")
             self.connect("blade.internal_structure_2d_fem.layer_end_nd", "rotorse.rs.bjs.layer_end_nd")
             self.connect("blade.interp_airfoils.coord_xy_interp", "rotorse.rs.bjs.coord_xy_interp")
@@ -187,7 +187,8 @@ class WT_RNTA(om.Group):
             self.connect("blade.internal_structure_2d_fem.web_start_nd", "rotorse.rc.web_start_nd")
             self.connect("blade.internal_structure_2d_fem.web_end_nd", "rotorse.rc.web_end_nd")
             self.connect("blade.internal_structure_2d_fem.joint_position", "rotorse.rc.joint_position")
-            self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.rc.joint_mass")
+            # self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.rc.joint_mass")  # TODO figure out how to load joint mass from bjs to re.precomp and rc
+            self.connect("rotorse.rs.bjs.joint_mass", "rotorse.rc.joint_mass")
             self.connect("blade.internal_structure_2d_fem.joint_cost", "rotorse.rc.joint_cost")
             self.connect("materials.name", "rotorse.rc.mat_name")
             self.connect("materials.orth", "rotorse.rc.orth")

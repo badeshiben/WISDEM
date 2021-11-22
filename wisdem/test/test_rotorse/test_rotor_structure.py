@@ -11,6 +11,7 @@ from wisdem.commonse import gravity
 
 ARCHIVE1 = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + "nrel5mw_test.npz"
 ARCHIVE2 = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + "nrel5mw_test2.npz"
+ARCHIVE3 = os.path.dirname(os.path.abspath(__file__)) + os.path.sep + "BAR_USC_joint_test.npz"
 
 
 class TestRS(unittest.TestCase):
@@ -288,6 +289,14 @@ class TestRS(unittest.TestCase):
         npt.assert_almost_equal(outputs["dy"], dy, decimal=2)
         npt.assert_almost_equal(outputs["dz"], dz, decimal=3)  # Very small numbers, so no precision
         npt.assert_almost_equal(outputs["freqs"], freqs, decimal=0)
+
+    def testBladeJointSizing(self):  # TODO add this blade joint sizing test. Maybe don't do this for a while, until after the paper is writteen? Trying to conserve time
+        inputs = {}
+        outputs = {}
+
+        bar_usc = np.load(ARCHIVE3)
+        for k in bar_usc.files:
+            inputs[k] = bar_usc[k]
 
     def testComputeStrains(self):
         inputs = {}

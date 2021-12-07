@@ -1111,7 +1111,6 @@ class BladeJointSizing(ExplicitComponent):
         self.spar_cap_ss = rotorse_options["spar_cap_ss"]
         self.spar_cap_ps = rotorse_options["spar_cap_ps"]
         self.layer_name = rotorse_options["layer_name"]
-        self.spar_cap_ss = rotorse_options["spar_cap_ss"]
 
         # safety factors. These will eventually come from the modeling yaml, but are currently hardcoded.
         self.add_input('load_factor', val=1, desc='input load multiplier. 1.35 recommended for DLC6.1. [float]')  # I find it better to change the load factor than the safety factors. It prevents limit errors (like divide by zero)
@@ -1184,6 +1183,13 @@ class BladeJointSizing(ExplicitComponent):
         self.add_output('L_transition_joint', val=0, units='m', desc='Required length to accommodate spar cap size increase at joint. [float]')
         self.add_output('n_bolt_joint', val=0, desc='Required number of bolts for joint. [float]')
         self.add_output('joint_mass', val=0, units='kg', desc='Mass of bolts + inserts minus mass of spar cap cutouts at joint. [float]')
+        self.add_output("layer_end_nd_bjs", val=np.zeros((n_layers, n_span)),
+                       desc="2D array of the non-dimensional end point defined along the outer profile of a layer. The TE suction side is 0, the TE pressure side is 1. The first dimension represents each layer, the second dimension represents each entry along blade span.")
+        self.add_output("layer_start_nd_bjs", val=np.zeros((n_layers, n_span)),
+                       desc="2D array of the non-dimensional start point defined along the outer profile of a layer. The TE suction side is 0, the TE pressure side is 1. The first dimension represents each layer, the second dimension represents each entry along blade span.")
+
+        self.add_output("layer_offset_y_bjs", val=np.zeros((n_layers, n_span)), units="m",
+                   desc="2D array of the offset along the y axis to set the position of a layer. Positive values move the layer towards the trailing edge, negative values towards the leading edge. The first dimension represents each layer, the second dimension represents each entry along blade span.")
 
     def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
 
@@ -1271,8 +1277,9 @@ class BladeJointSizing(ExplicitComponent):
         eta = self.nd_span[i_span]  # joint location
         chord = inputs['chord'][i_span]
         L_segment = L_blade[-1] / self.n_span  # m
-        sc_layer_i = self.layer_name.index(self.spar_cap_ss) # TODO figure out if it's ok to only consider the ss sparcap dimensions as inputs. WIll this mess up the optimization?
-        t_sc = t_layer[sc_layer_i][i_span]
+        sc_ss_layer_i = self.layer_name.index(self.spar_cap_ss) # TODO figure out if it's ok to only consider the ss sparcap dimensions as inputs. WIll this mess up the optimization?
+        sc_ps_layer_i = self.layer_name.index(self.spar_cap_ps)
+        t_sc = t_layer[sc_ss_layer_i][i_span]
         bolt_spacing = bolt_spacing_dia * d_bolt
         n_bolt_max = chord * ratio_SCmax // bolt_spacing  # max # bolts that can fit in 0.8 chord
         # V_adhesive = np.pi * ((d_insert + 2 * t_adhesive) ** 2 - d_insert ** 2) / 4  # m3
@@ -1285,7 +1292,7 @@ class BladeJointSizing(ExplicitComponent):
         # Compute arc length at joint station
         xy_arc = util.arc_length(xy_coord)
         arc_L = xy_arc[-1]
-        w_sc = arc_L * chord * (layer_end_nd[sc_layer_i, i_span] - layer_start_nd[sc_layer_i, i_span])
+        w_sc = arc_L * chord * (layer_end_nd[sc_ss_layer_i, i_span] - layer_start_nd[sc_ss_layer_i, i_span])
         # w_sc = inputs['w_sc']
         # w_sc = 1.27728
 
@@ -1456,16 +1463,16 @@ class BladeJointSizing(ExplicitComponent):
             print('Warning, required spar cap width of ', w_req_sc, ' is greater than nominal. Update input files')
 
         # check if spar cap reaches LE or TE. If so, change y offset to prevent this
-        # for i in [sc_ss_layer_i, sc_ps_layer_i]:
-        offset = inputs["layer_offset_y_pa"][sc_layer_i, i_span]
-        if offset + 0.5 * w_req_sc > ratio_SCmax * chord * (1.0 - p_le_i): # hitting TE?
-            offset = ratio_SCmax * chord * (1.0 - p_le_i) - w_req_sc - 0.51
-        elif offset - 0.5 * w_req_sc < -ratio_SCmax * chord * p_le_i:  # hitting LE?
-            offset = -ratio_SCmax * chord * p_le_i + (0.51 * w_req_sc)
-        # calculate layer start, end based on width
-        midpoint = calc_axis_intersection(inputs["coord_xy_dim"][i_span, :, :], inputs["twist"][i_span], offset, [0.0, 0.0], [discrete_inputs["layer_side"][sc_layer_i]])[0]
-        layer_start_nd[sc_layer_i, i_span] = midpoint - w_req_sc / arc_L / chord / 2.0
-        layer_end_nd[sc_layer_i, i_span] = midpoint + w_req_sc / arc_L / chord / 2.0
+        offset = inputs["layer_offset_y_pa"]
+        for i in [sc_ss_layer_i, sc_ps_layer_i]:
+            if offset[i, i_span] + 0.5 * w_req_sc > ratio_SCmax * chord * (1.0 - p_le_i): # hitting TE?
+                offset[i, i_span] = ratio_SCmax * chord * (1.0 - p_le_i) - w_req_sc - 0.51
+            elif offset[i, i_span] - 0.5 * w_req_sc < -ratio_SCmax * chord * p_le_i:  # hitting LE?
+                offset[i, i_span] = -ratio_SCmax * chord * p_le_i + (0.51 * w_req_sc)
+            # calculate layer start, end based on width
+            midpoint = calc_axis_intersection(inputs["coord_xy_dim"][i_span, :, :], inputs["twist"][i_span], offset[i, i_span], [0.0, 0.0], [discrete_inputs["layer_side"][i]])[0]
+            layer_start_nd[i, i_span] = midpoint - w_req_sc / arc_L / chord / 2.0
+            layer_end_nd[i, i_span] = midpoint + w_req_sc / arc_L / chord / 2.0
 
         # 8- once width and thickness are found, the required ply drop length will determine how long the bulge in the spar cap
         # is, and inform spar cap total mass. ***OR, the spar cap could be sized with WISDEM as usual.***
@@ -1496,7 +1503,9 @@ class BladeJointSizing(ExplicitComponent):
         w_sc_ratio = w_req_sc / w_sc
 
 
-
+        outputs['layer_offset_y_bjs'] = offset
+        outputs['layer_start_nd_bjs'] = layer_start_nd
+        outputs['layer_end_nd_bjs'] = layer_end_nd
         outputs['L_transition_joint'] = L_transition
         outputs['t_sc_joint'] = t_req_sc
         outputs['w_sc_joint'] = w_req_sc
@@ -1505,9 +1514,12 @@ class BladeJointSizing(ExplicitComponent):
         outputs['n_bolt_joint'] = n_bolt
         outputs['joint_mass'] = m_add
 
-        print('offset_y_pa = ', offset)
-        print('Layer start nd = ', layer_start_nd[sc_layer_i, i_span])
-        print('Layer end nd = ', layer_end_nd[sc_layer_i, i_span])
+        print('Sparcap suction start = ', layer_start_nd[sc_ss_layer_i, i_span])
+        print('Sparcap suction end = ', layer_end_nd[sc_ss_layer_i, i_span])
+        print('Sparcap suction offset = ', offset[sc_ss_layer_i, i_span])
+        print('Sparcap pressure start = ', layer_start_nd[sc_ps_layer_i, i_span])
+        print('Sparcap pressure end = ', layer_end_nd[sc_ps_layer_i, i_span])
+        print('Sparcap pressure offset = ', offset[sc_ps_layer_i, i_span])
         print('t_req_sc_joint', t_req_sc)
         print('w_req_sc_joint', w_req_sc)
         print('t_sc_ratio_joint', t_sc_ratio)

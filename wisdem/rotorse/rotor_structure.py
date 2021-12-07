@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.interpolate import interp1d
 import wisdem.ccblade._bem as _bem
 import wisdem.commonse.utilities as util
 import wisdem.pyframe3dd.pyframe3dd as pyframe3dd
@@ -7,6 +8,7 @@ from wisdem.rotorse import RPM2RS, RS2RPM
 from wisdem.commonse import gravity
 from wisdem.commonse.csystem import DirectionVector
 from wisdem.ccblade.ccblade_component import CCBladeLoads, CCBladeEvaluate
+from wisdem.rotorse.geometry_tools.geometry import remap2grid
 
 
 class BladeCurvature(ExplicitComponent):
@@ -1099,6 +1101,7 @@ class BladeJointSizing(ExplicitComponent):
     def setup(self):
 
         # options
+        self.bolt = 'M48'
         n_mat = int(self.options["n_mat"])
         rotorse_options = self.options["rotorse_options"]
         n_layers = rotorse_options["n_layers"]
@@ -1113,12 +1116,12 @@ class BladeJointSizing(ExplicitComponent):
         # safety factors. These will eventually come from the modeling yaml, but are currently hardcoded.
         self.add_input('load_factor', val=1, desc='input load multiplier. 1.35 recommended for DLC6.1. [float]')  # I find it better to change the load factor than the safety factors. It prevents limit errors (like divide by zero)
         self.add_input('nprf', val=1.2, desc='bolt proof safety factor. [float]')  # bolt ultimate safety factor (proof) [-]. If this is too high, it seriously constrains the design. Keep it low, <= 1.2
-        self.add_input('ny', val=2, desc='bolt yield safety factor. [float]')
+        self.add_input('ny', val=1.2, desc='bolt yield safety factor. [float]')
         self.add_input('ns', val=2, desc='bolt shear safety factor. [float]')
         self.add_input('n0', val=2, desc='bolt separation safety factor. [float]')
-        self.add_input('nf', val=2, desc='bolt fatigue safety factor. [float]')
+        self.add_input('nf', val=1.2, desc='bolt fatigue safety factor. [float]')
 
-        # M48 10.9 bolt properties (Shigley p.433) # kf = 3  # metric 10.9, rolled thread. These are hardcoded. TODO try M36. Could ask AB.
+        # M48 10.9 bolt properties (Shigley p.433) # kf = 3  # metric 10.9, rolled thread. These are hardcoded.
         self.add_input('Sp_bolt', val=830e6, units='Pa', desc='bolt proof strength. [float]')
         self.add_input('Sy_bolt', val=940e6, units='Pa', desc='bolt yield strength. [float]')
         self.add_input('Su_bolt', val=1040e6, units='Pa', desc='bolt ultimate strength. [float]')
@@ -1126,7 +1129,7 @@ class BladeJointSizing(ExplicitComponent):
         self.add_input('E_bolt', val=200e9, units='Pa', desc='bolt elastic modulus. [float]')  # medium carbon steel
         self.add_input('d_bolt', val=0.048, units='m', desc='bolt diameter. [float]')
         self.add_input('L_bolt', val=1, units='m', desc='bolt length. [float]')
-        self.add_input('m_bolt', val=15.15, units='kg', desc='bolt+washer mass. [float]')  #https://www.portlandbolt.com/technical/tools/bolt-weight-calculator/
+        self.add_input('m_bolt', val=15.15, units='kg', desc='bolt+washer mass. [float]')  #TODO https://www.portlandbolt.com/technical/tools/bolt-weight-calculator/ 8.35 for M36
 
         # stainless steel insert material properties. These mostly come from the geometry yaml.
         # material: Stainless Steel 440A, tempered @315C. Cold worked 304: 515/860. (http://www.matweb.com/search/datasheet_print.aspx?matguid=4f9c4c71102d4cd9b4c52622588e99a0)
@@ -1135,22 +1138,18 @@ class BladeJointSizing(ExplicitComponent):
         self.add_input('Xt_mat', val=np.zeros((n_mat, 3)), units='Pa', desc='list of material tensile strengths. [(n_mat x 3) 2D array of float]')
         self.add_input('Xy_mat', val=np.zeros(n_mat), units='Pa', desc='list of material yield strengths. [(n_mat x 3) 1D array of float]')
         self.add_input('E_mat', val=np.zeros((n_mat, 3)), units='Pa', desc='list of material elastic moduli. [(n_mat x 3) list of float]')
-        self.add_input('S_mat', val=np.zeros((n_mat, 3)), units='Pa')  # TODO wisdem should load from inputs
+        self.add_input('S_mat', val=np.zeros((n_mat, 3)), units='Pa')
         self.add_input('Se_insert', val=316e6, units='Pa', desc='insert material endurance limit. [float]')  # Azom (hardcoded)
         self.add_input('mu_joint', val=0.5, desc='steel insert friction factor. [float]')  # eng toolbox says 0.5-0.8 for clean, dry steel (hardcoded)
 
-        # CFRP UD industry standard composite material properties (https://energy.sandia.gov/download/45350/)
-        # self.add_input('Ss_sc', val=3017e4, units='Pa', desc='sparcap shear strength. [float]')  # direction 1: along fibers TODO: wisdem should load S_mat from inputs
-
         # geometric properties
-        # self.add_discrete_input('i_span', val=20, desc='joint station. [int]')  # (hardcoded) TODO wisdem will provide if optimizing joint location
         self.add_input('joint_position', val=0, desc='nondimensionalized joint position along blade')
         self.add_input('bolt_spacing_dia', val=3, desc='joint bolt spacing along sparcap in y. [int]')  # units: bolt diameters (hardcoded)
         self.add_input('ply_drop_slope', val=1 / 8, desc='required ply drop slope. [float]')  # max for >45 plies dropped (otherwise 1/3) https://www.sciencedirect.com/science/article/pii/S135983680000038X. (hardcoded)
         self.add_input('t_adhesive', val=0.005, units='m', desc='insert-sparcap adhesive thickness. [float]')  # (hardcoded)
         self.add_input('t_max_sc', val=1 / 4, desc='maximum spar cap thickness per spar cap height. [float]')  # (hardcoded)
-        self.add_input('w_sc', val=0.02, units='m', desc='original spar cap width. [float]')
-        self.add_input('t_sc', val=0.8, units='m', desc='original spar cap thickness. [float]')
+        self.add_input('w_sc', val=0.8, units='m', desc='original spar cap width. [float]')
+        self.add_input('t_sc', val=0.02, units='m', desc='original spar cap thickness. [float]')
         self.add_input('chord', val=np.zeros(n_span), units='m', desc='chord length at joint station. [(n_span x 3) 1D array of float]')
         self.add_input("layer_thickness", val=np.zeros((n_layers, n_span)), units="m", desc="2D array of the thickness of the layers of the blade structure. The first dimension represents each layer, the second dimension represents each entry along blade span.")
         self.add_input("layer_start_nd", val=np.zeros((n_layers, n_span)), desc="2D array of the non-dimensional start point defined along the outer profile of a layer. The TE suction side is 0, the TE pressure side is 1. The first dimension represents each layer, the second dimension represents each entry along blade span.")
@@ -1158,7 +1157,11 @@ class BladeJointSizing(ExplicitComponent):
         self.add_input('blade_length', val=np.zeros(n_span), units='m', desc="1D array of cumulative blade length at each station. n_span long")
         self.add_input("coord_xy_interp", val=np.zeros((n_span, n_xy, 2)), desc="3D array of the non-dimensional x and y airfoil coordinates of the airfoils interpolated along span for n_span stations.")
         self.add_input("rthick", val=np.zeros(n_span), desc="1D array of the relative thicknesses of the blade defined along span. n_span long")
-
+        self.add_input("layer_offset_y_pa", val=np.zeros((n_layers, n_span)), units="m", desc="2D array of the offset along the y axis to set the position of a layer. Positive values move the layer towards the trailing edge, negative values towards the leading edge. The first dimension represents each layer, the second dimension represents each entry along blade span.")
+        self.add_input("coord_xy_dim", val=np.zeros((n_span, n_xy, 2)), units="m", desc="3D array of the dimensional x and y airfoil coordinates of the airfoils interpolated along span for n_span stations. The origin is placed at the pitch axis.")
+        self.add_discrete_input("layer_side", val=n_layers * [""], desc="1D array setting whether the layer is on the suction or pressure side. This entry is only used if definition_layer is equal to 1 or 2.",)
+        self.add_input("twist", val=np.zeros(n_span), units="rad", desc="1D array of the twist values defined along blade span. The twist is defined positive for negative rotations around the z axis (the same as in BeamDyn).")
+        self.add_input("pitch_axis", val=np.zeros(n_span), desc="1D array of the chordwise position of the pitch axis (0-LE, 1-TE), defined along blade span.")
         # blade ultimate loads
         self.add_input("M1", val=np.zeros(n_span), units="N*m", desc="distribution along blade span of ultimate bending moment w.r.t principal axis 1. [(n_mat) 1D array of float]")
         self.add_input("M2", val=np.zeros(n_span), units="N*m", desc="distribution along blade span of ultimate bending moment w.r.t principal axis 2. [(n_mat) 1D array of float]")
@@ -1227,12 +1230,19 @@ class BladeJointSizing(ExplicitComponent):
         c = inputs['c']
 
         # bolt properties
-        Ad = np.pi * d_bolt ** 2 / 4
-        At = 1470 / 1e6
+        At = 1470 / 1e6  # TODO this should be input (1470 for M48, 817 for M36)
         Ld = L_bolt * 0.75
         Lt = L_bolt - Ld
         n_bolt = -2  # initialized
         n_bolt_prev = -1  # initialized
+
+        # M36 option
+        if self.bolt == 'M36':
+            At = 817
+            d_bolt = 0.036
+            m_bolt = 8.35
+
+        Ad = np.pi * d_bolt ** 2 / 4
 
         d_insert = d_bolt * 2  # keeping the insert much larger than the bolt reduces bolt loads, which drive the design.
         A_insert = np.pi * (d_insert ** 2 - d_bolt ** 2) / 4
@@ -1242,8 +1252,14 @@ class BladeJointSizing(ExplicitComponent):
 
         # geometric properties and calculations
         # i_span = int(inputs['i_span'])
+        layer_offset_y_pa = inputs["layer_offset_y_pa"]
+        coord_xy_dim = inputs["coord_xy_dim"]
+        layer_side = discrete_inputs["layer_side"]
+        twist = inputs["twist"]
+        ratio_SCmax = 0.8  # max sparcap/chord ratio
         joint_position = inputs['joint_position']
         i_span = util.find_nearest(self.nd_span, joint_position)
+        p_le_i = inputs["pitch_axis"][i_span]
         t_layer = inputs['layer_thickness']
         layer_start_nd = inputs['layer_start_nd']
         layer_end_nd = inputs['layer_end_nd']
@@ -1258,18 +1274,20 @@ class BladeJointSizing(ExplicitComponent):
         sc_layer_i = self.layer_name.index(self.spar_cap_ss) # TODO figure out if it's ok to only consider the ss sparcap dimensions as inputs. WIll this mess up the optimization?
         t_sc = t_layer[sc_layer_i][i_span]
         bolt_spacing = bolt_spacing_dia * d_bolt
-        n_bolt_max = chord // bolt_spacing  # max # bolts that can fit
+        n_bolt_max = chord * ratio_SCmax // bolt_spacing  # max # bolts that can fit in 0.8 chord
         # V_adhesive = np.pi * ((d_insert + 2 * t_adhesive) ** 2 - d_insert ** 2) / 4  # m3
         w_hole_bolthead = d_bolt * 7 / 3
         h_bolthead_hole_i = d_bolt * 2
         xy_coord = inputs["coord_xy_interp"][i_span, :, :]
         t_airfoil = inputs["rthick"][i_span]*chord
-        d_b2b = t_airfoil - t_sc
+        d_b2b = t_airfoil - t_sc  # ss bolt to ps bolt distance
         t_max_sc = d_b2b * t_max_sc
         # Compute arc length at joint station
         xy_arc = util.arc_length(xy_coord)
         arc_L = xy_arc[-1]
         w_sc = arc_L * chord * (layer_end_nd[sc_layer_i, i_span] - layer_start_nd[sc_layer_i, i_span])
+        # w_sc = inputs['w_sc']
+        # w_sc = 1.27728
 
         # Loads
         Mflap_ultimate = abs(inputs['M1'][i_span]) * load_factor
@@ -1433,13 +1451,21 @@ class BladeJointSizing(ExplicitComponent):
 
         # c-spar cap dimensions
         t_req_sc = np.max([t1, t2, t_sc])
-        # if t_req_sc > t_max_sc:  # already constrained in analysis_schema.yaml
-        #     print('Warning, spar cap thickness (', t_req_sc,
-        #           'm) greater than 1/4 cross section height and will be limited')
-        #     t_req_sc = t_max_sc
         w_req_sc = np.max([n_bolt * bolt_spacing, w_sc])  # required width driven by number of bolts
         if w_req_sc > w_sc:
             print('Warning, required spar cap width of ', w_req_sc, ' is greater than nominal. Update input files')
+
+        # check if spar cap reaches LE or TE. If so, change y offset to prevent this
+        # for i in [sc_ss_layer_i, sc_ps_layer_i]:
+        offset = inputs["layer_offset_y_pa"][sc_layer_i, i_span]
+        if offset + 0.5 * w_req_sc > ratio_SCmax * chord * (1.0 - p_le_i): # hitting TE?
+            offset = ratio_SCmax * chord * (1.0 - p_le_i) - w_req_sc - 0.51
+        elif offset - 0.5 * w_req_sc < -ratio_SCmax * chord * p_le_i:  # hitting LE?
+            offset = -ratio_SCmax * chord * p_le_i + (0.51 * w_req_sc)
+        # calculate layer start, end based on width
+        midpoint = calc_axis_intersection(inputs["coord_xy_dim"][i_span, :, :], inputs["twist"][i_span], offset, [0.0, 0.0], [discrete_inputs["layer_side"][sc_layer_i]])[0]
+        layer_start_nd[sc_layer_i, i_span] = midpoint - w_req_sc / arc_L / chord / 2.0
+        layer_end_nd[sc_layer_i, i_span] = midpoint + w_req_sc / arc_L / chord / 2.0
 
         # 8- once width and thickness are found, the required ply drop length will determine how long the bulge in the spar cap
         # is, and inform spar cap total mass. ***OR, the spar cap could be sized with WISDEM as usual.***
@@ -1463,9 +1489,13 @@ class BladeJointSizing(ExplicitComponent):
         # m_add = 0
         # t_req_sc = t_sc
         # w_req_sc = w_sc
+        # print('M_FLAP ', inputs['M1'])
+        # print('span_loc ', self.nd_span)
         ### REMOVE ABOVE WHEN DONE
         t_sc_ratio = t_req_sc / t_sc
         w_sc_ratio = w_req_sc / w_sc
+
+
 
         outputs['L_transition_joint'] = L_transition
         outputs['t_sc_joint'] = t_req_sc
@@ -1475,13 +1505,17 @@ class BladeJointSizing(ExplicitComponent):
         outputs['n_bolt_joint'] = n_bolt
         outputs['joint_mass'] = m_add
 
-        print('t_sc_joint', t_req_sc)
-        print('w_sc_joint', w_req_sc)
+        print('offset_y_pa = ', offset)
+        print('Layer start nd = ', layer_start_nd[sc_layer_i, i_span])
+        print('Layer end nd = ', layer_end_nd[sc_layer_i, i_span])
+        print('t_req_sc_joint', t_req_sc)
+        print('w_req_sc_joint', w_req_sc)
         print('t_sc_ratio_joint', t_sc_ratio)
         print('w_sc_ratio_joint', w_sc_ratio)
         print('n_bolt_joint', n_bolt)
         print('joint_mass_adder', m_add)
         print('L_transition_joint', L_transition)
+
         print('joint model done')
 
 
@@ -1644,3 +1678,64 @@ class RotorStructure(Group):
         self.connect("frame.F2", "bjs.F2")
         self.connect("frame.M1", "bjs.M1")
         self.connect("frame.M2", "bjs.M2")
+
+def calc_axis_intersection(xy_coord, rotation, offset, p_le_d, side, thk=0.0):
+    # dimentional analysis that takes a rotation and offset from the pitch axis and calculates the airfoil intersection
+    # rotation
+    offset_x = offset * np.cos(rotation) + p_le_d[0]
+    offset_y = offset * np.sin(rotation) + p_le_d[1]
+
+    m_rot = np.sin(rotation) / np.cos(rotation)  # slope of rotated axis
+    plane_rot = [m_rot, -1 * m_rot * p_le_d[0] + p_le_d[1]]  # coefficients for rotated axis line: a1*x + a0
+
+    m_intersection = np.sin(rotation + np.pi / 2.0) / np.cos(
+        rotation + np.pi / 2.0
+    )  # slope perpendicular to rotated axis
+    plane_intersection = [
+        m_intersection,
+        -1 * m_intersection * offset_x + offset_y,
+    ]  # coefficients for line perpendicular to rotated axis line at the offset: a1*x + a0
+
+    # intersection between airfoil surface and the line perpendicular to the rotated/offset axis
+    y_intersection = np.polyval(plane_intersection, xy_coord[:, 0])
+
+    idx_le = np.argmin(xy_coord[:, 0])
+    xy_coord_arc = util.arc_length(xy_coord)
+    arc_L = xy_coord_arc[-1]
+    xy_coord_arc /= arc_L
+
+    idx_inter = np.argwhere(
+        np.diff(np.sign(xy_coord[:, 1] - y_intersection))
+    ).flatten()  # find closest airfoil surface points to intersection
+
+    midpoint_arc = []
+    for sidei in side:
+        if sidei.lower() == "suction":
+            tangent_line = np.polyfit(
+                xy_coord[idx_inter[0] : idx_inter[0] + 2, 0], xy_coord[idx_inter[0] : idx_inter[0] + 2, 1], 1
+            )
+        elif sidei.lower() == "pressure":
+            tangent_line = np.polyfit(
+                xy_coord[idx_inter[1] : idx_inter[1] + 2, 0], xy_coord[idx_inter[1] : idx_inter[1] + 2, 1], 1
+            )
+
+        midpoint_x = (tangent_line[1] - plane_intersection[1]) / (plane_intersection[0] - tangent_line[0])
+        midpoint_y = (
+            plane_intersection[0]
+            * (tangent_line[1] - plane_intersection[1])
+            / (plane_intersection[0] - tangent_line[0])
+            + plane_intersection[1]
+        )
+
+        # convert to arc position
+        if sidei.lower() == "suction":
+            x_half = xy_coord[: idx_le + 1, 0]
+            arc_half = xy_coord_arc[: idx_le + 1]
+
+        elif sidei.lower() == "pressure":
+            x_half = xy_coord[idx_le:, 0]
+            arc_half = xy_coord_arc[idx_le:]
+
+        midpoint_arc.append(remap2grid(x_half, arc_half, midpoint_x, spline=interp1d))
+
+    return midpoint_arc

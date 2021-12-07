@@ -153,13 +153,10 @@ def create_all_plots(
             s_opt_sc = yaml_data["blade.opt_var.s_opt_spar_cap_ss"]
             sc_opt = yaml_data["blade.opt_var.spar_cap_ss_opt"] * 1e3
             n_layers = yaml_data["blade.ps.layer_thickness_param"].shape[0]
-            print(n_layers)
-            print(label)
             ilayer = None
             if ilayer is None:
                 for i in range(n_layers):
                     layer_name = modeling_options["WISDEM"]["RotorSE"]["layer_name"][i]
-                    print(layer_name)
                     if modeling_options["WISDEM"]["RotorSE"]["spar_cap_ss"] == layer_name:
                         ilayer = i
             axsc.plot(

@@ -1913,13 +1913,18 @@ class Compute_Blade_Internal_Structure_2D_FEM(om.ExplicitComponent):
                     # Geometry check to make sure the spar caps does not exceed 80% of the chord
                     width = inputs["layer_width_yaml"][j, i]
                     offset = inputs["layer_offset_y_pa_yaml"][j, i]
+                    a= offset + 0.5 * width
+                    b = ratio_SCmax * chord * (1.0 - p_le_i)
+                    c = offset - 0.5 * width
+                    d = -ratio_SCmax * chord * p_le_i
+
                     if (
                         offset + 0.5 * width > ratio_SCmax * chord * (1.0 - p_le_i)
                         or offset - 0.5 * width < -ratio_SCmax * chord * p_le_i
                     ):  # hitting TE or LE
                         width_old = copy.copy(width)
-                        width = 2.0 * min([ratio_SCmax * (chord * p_le_i), ratio_SCmax * (chord * (1.0 - p_le_i))])
-                        offset = 0.0
+                        # width = 2.0 * min([ratio_SCmax * (chord * p_le_i), ratio_SCmax * (chord * (1.0 - p_le_i))])
+                        # offset = 0.0
                         outputs["layer_width"][j, i] = copy.copy(width)
                         outputs["layer_offset_y_pa"][j, i] = copy.copy(offset)
                         layer_resize_warning = (

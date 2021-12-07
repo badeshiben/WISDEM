@@ -173,8 +173,14 @@ class WT_RNTA(om.Group):
             self.connect("blade.interp_airfoils.r_thick_interp", "rotorse.rs.bjs.rthick")
             self.connect("blade.internal_structure_2d_fem.joint_position", "rotorse.rs.bjs.joint_position")
             # self.connect("blade.outer_shape_bem.thickness", "rotorse.rs.bjs.blade_thickness")
+            self.connect("blade.internal_structure_2d_fem.layer_offset_y_pa", "rotorse.rs.bjs.layer_offset_y_pa")
+            self.connect("blade.compute_coord_xy_dim.coord_xy_dim", "rotorse.rs.bjs.coord_xy_dim")
+            self.connect("blade.internal_structure_2d_fem.layer_side", "rotorse.rs.bjs.layer_side")
+            self.connect("blade.pa.twist_param", "rotorse.rs.bjs.twist")
+            self.connect("blade.outer_shape_bem.pitch_axis", "rotorse.rs.bjs.pitch_axis")
 
-            # Connections to RotorCost
+
+                         # Connections to RotorCost
             self.connect("blade.high_level_blade_props.blade_length", "rotorse.rc.blade_length")
             self.connect("blade.outer_shape_bem.s", "rotorse.rc.s")
             self.connect("blade.pa.chord_param", "rotorse.rc.chord")

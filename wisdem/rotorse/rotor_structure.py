@@ -1429,19 +1429,19 @@ class BladeJointSizing(ExplicitComponent):
                       'the cross section (', n_bolt_max, ').')
                 n_bolt = n_bolt_max
 
-            print('n_bolt_flap_fatigue', n_bolt_flap_fatigue)
-            print('n_bolt_flap_ultimate', n_bolt_flap_ultimate)
-            print('n_insert_flap_ultimate', n_insert_flap_ultimate)
-            print('n_insert_flap_fatigue', n_insert_flap_fatigue)
-            print('n_bolt_pullout', n_bolt_pullout)
-            print('n_bolt_min', n_bolt_min)
-            print('n_bolt', n_bolt)
-
-            print('Fi_sep', Fi_sep)
-            print('Fi_sh', Fi_sh)
-            print('Fi70p', Fi70p)
-            print('Fi', Fi)
-            print('################################################')
+            # print('n_bolt_flap_fatigue', n_bolt_flap_fatigue)
+            # print('n_bolt_flap_ultimate', n_bolt_flap_ultimate)
+            # print('n_insert_flap_ultimate', n_insert_flap_ultimate)
+            # print('n_insert_flap_fatigue', n_insert_flap_fatigue)
+            # print('n_bolt_pullout', n_bolt_pullout)
+            # print('n_bolt_min', n_bolt_min)
+            # print('n_bolt', n_bolt)
+            #
+            # print('Fi_sep', Fi_sep)
+            # print('Fi_sh', Fi_sh)
+            # print('Fi70p', Fi70p)
+            # print('Fi', Fi)
+            # print('################################################')
 
         # 6- loop through steps 4b-5 until n_bolt converges. Result is n_bolt
 

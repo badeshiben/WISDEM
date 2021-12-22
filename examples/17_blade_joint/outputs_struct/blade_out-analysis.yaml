@@ -130,7 +130,7 @@ constraints:
         global_buckling: *id004
         shell_buckling: *id005
 driver:
-    optimization: {flag: true, tol: 0.001, max_iter: 10, solver: SLSQP, step_size: 0.001, form: forward, max_major_iter: 10, max_minor_iter: 100, max_function_calls: 100000, debug_print: false}
+    optimization: {flag: true, tol: 0.001, max_iter: 2, solver: SLSQP, step_size: 0.001, form: forward, max_major_iter: 10, max_minor_iter: 100, max_function_calls: 100000, debug_print: false}
     design_of_experiments: {flag: false, run_parallel: true, generator: Uniform, num_samples: 5, seed: 2, levels: 2, criterion: None, iterations: 2, debug_print: false}
     step_size_study:
         flag: false

@@ -127,3 +127,5 @@ examples/03_blade/outputs
 examples/03_blade/outputs_aero
 examples/03_blade/outputs_aerostruct
 examples/03_blade/outputs_struct
+examples/17_blade_joint/outputs
+examples/17_blade_joint/outputs_struct

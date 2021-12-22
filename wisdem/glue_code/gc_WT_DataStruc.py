@@ -1818,7 +1818,7 @@ class Compute_Blade_Internal_Structure_2D_FEM(om.ExplicitComponent):
             LE_loc = xy_arc_i[idx_le]
             chord = inputs["chord"][i]
             p_le_i = inputs["pitch_axis"][i]
-            ratio_SCmax = 0.8
+            ratio_SCmax = 0.85
             ratio_Websmax = 0.75
 
             # Loop through the webs and compute non-dimensional start and end positions along the profile
@@ -1923,20 +1923,20 @@ class Compute_Blade_Internal_Structure_2D_FEM(om.ExplicitComponent):
                         or offset - 0.5 * width < -ratio_SCmax * chord * p_le_i
                     ):  # hitting TE or LE
                         width_old = copy.copy(width)
-                        # width = 2.0 * min([ratio_SCmax * (chord * p_le_i), ratio_SCmax * (chord * (1.0 - p_le_i))])
-                        # offset = 0.0
+                        width = 2.0 * min([ratio_SCmax * (chord * p_le_i), ratio_SCmax * (chord * (1.0 - p_le_i))])
+                        offset = 0.0
                         outputs["layer_width"][j, i] = copy.copy(width)
                         outputs["layer_offset_y_pa"][j, i] = copy.copy(offset)
                         layer_resize_warning = (
                             'WARNING: Layer "%s" may be too large to fit within chord. "offset_y_pa" changed from %f to 0.0 and "width" changed from %f to %f at s=%f (i=%d)'
                             % (layer_name[j], offset, width_old, width, inputs["s"][i], i)
                         )
-                        # print(layer_resize_warning)
+                        print(layer_resize_warning)
                     else:
                         outputs["layer_width"][j, i] = copy.copy(width)
                         outputs["layer_offset_y_pa"][j, i] = copy.copy(offset)
 
-                    layer_start_nd[j, i] = midpoint - width / arc_L_i / 2.0
+                    layer_start_nd[j, i] = midpoint - width / arc_L_i / 2.0  # TODO update midpoint after
                     layer_end_nd[j, i] = midpoint + width / arc_L_i / 2.0
 
                 elif discrete_inputs["definition_layer"][j] == 4:  # Midpoint and width

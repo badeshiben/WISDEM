@@ -167,6 +167,7 @@ class WT_RNTA(om.Group):
             self.connect("blade.pa.chord_param", "rotorse.rs.bjs.chord")
             self.connect("blade.high_level_blade_props.r_blade", "rotorse.rs.bjs.blade_length")
             self.connect("blade.ps.layer_thickness_param", "rotorse.rs.bjs.layer_thickness")
+            self.connect("blade.internal_structure_2d_fem.layer_width", "rotorse.rs.bjs.layer_width")
             self.connect("blade.internal_structure_2d_fem.layer_start_nd", "rotorse.rs.bjs.layer_start_nd")
             self.connect("blade.internal_structure_2d_fem.layer_end_nd", "rotorse.rs.bjs.layer_end_nd")
             self.connect("blade.interp_airfoils.coord_xy_interp", "rotorse.rs.bjs.coord_xy_interp")
@@ -238,7 +239,7 @@ class WT_RNTA(om.Group):
             self.connect("rotorse.rs.frame.root_M", "drivese.pitch_system.BRFM", src_indices=[1])
 
             self.connect("blade.pa.chord_param", "drivese.blade_root_diameter", src_indices=[0])
-            self.connect("rotorse.re.precomp.blade_mass", "drivese.blade_mass")
+            self.connect("rotorse.rs.bjs.blade_mass", "drivese.blade_mass")  # TODO this should be from rs.bjs.blade_mass
             self.connect("rotorse.re.precomp.mass_all_blades", "drivese.blades_mass")
             self.connect("rotorse.re.precomp.I_all_blades", "drivese.blades_I")
 
@@ -560,7 +561,7 @@ class WT_RNTA(om.Group):
         self.connect("configuration.n_blades", "tcc.blade_number")
         self.connect("configuration.rated_power", "tcc.machine_rating")
         if modeling_options["flags"]["blade"]:
-            self.connect("rotorse.re.precomp.blade_mass", "tcc.blade_mass")
+            self.connect("rotorse.rs.bjs.blade_mass", "tcc.blade_mass")
             self.connect("rotorse.rc.total_blade_cost", "tcc.blade_cost_external")
 
         if modeling_options["flags"]["nacelle"]:
@@ -750,7 +751,7 @@ class WindPark(om.Group):
                     self.connect("floating.transition_piece_mass", "orbit.transition_piece_mass")
                     self.connect("floating.transition_piece_cost", "orbit.transition_piece_cost")
                     self.connect("floatingse.platform_cost", "orbit.floating_substructure_cost")
-                self.connect("rotorse.re.precomp.blade_mass", "orbit.blade_mass")
+                self.connect("rotorse.rs.bjs.blade_mass", "orbit.blade_mass")
                 self.connect("tcc.turbine_cost_kW", "orbit.turbine_capex")
                 if modeling_options["flags"]["nacelle"]:
                     self.connect("drivese.nacelle_mass", "orbit.nacelle_mass")
@@ -785,7 +786,7 @@ class WindPark(om.Group):
                 if modeling_options["flags"]["nacelle"]:
                     self.connect("drivese.nacelle_mass", "landbosse.nacelle_mass")
                     self.connect("drivese.hub_system_mass", "landbosse.hub_mass")
-                self.connect("rotorse.re.precomp.blade_mass", "landbosse.blade_mass")
+                self.connect("rotorse.rs.bjs.blade_mass", "landbosse.blade_mass")
                 self.connect("tower_grid.foundation_height", "landbosse.foundation_height")
                 self.connect("bos.plant_turbine_spacing", "landbosse.turbine_spacing_rotor_diameters")
                 self.connect("bos.plant_row_spacing", "landbosse.row_spacing_rotor_diameters")
@@ -821,5 +822,5 @@ class WindPark(om.Group):
         if modeling_options["flags"]["blade"]:
             self.connect("rotorse.rp.AEP", "outputs_2_screen.aep")
             self.connect("financese.lcoe", "outputs_2_screen.lcoe")
-            self.connect("rotorse.re.precomp.blade_mass", "outputs_2_screen.blade_mass")
+            self.connect("rotorse.rs.bjs.blade_mass", "outputs_2_screen.blade_mass")
             self.connect("rotorse.rs.tip_pos.tip_deflection", "outputs_2_screen.tip_deflection")

@@ -5,7 +5,7 @@ import os
 
 
 mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
-fname_analysis_options = mydir + os.sep + "analysis_options_struct_joint.yaml"
+fname_analysis_options = mydir + os.sep + "analysis_options_struct_joint_30cp.yaml"
 analysis_options = sch.load_analysis_yaml(fname_analysis_options)
 wt_opt = om.Problem(model=PlotRecorder(opt_options=analysis_options))
 wt_opt.setup(derivatives=False)

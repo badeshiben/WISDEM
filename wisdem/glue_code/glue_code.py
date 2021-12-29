@@ -119,8 +119,8 @@ class WT_RNTA(om.Group):
             self.connect("blade.internal_structure_2d_fem.web_start_nd", "rotorse.re.precomp.web_start_nd")
             self.connect("blade.internal_structure_2d_fem.web_end_nd", "rotorse.re.precomp.web_end_nd")
             self.connect("blade.internal_structure_2d_fem.joint_position", "rotorse.re.precomp.joint_position")
-            # self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.re.precomp.joint_mass")  # TODO figure out how to load joint mass from bjs to re.precomp and rc
             self.connect("rotorse.rs.bjs.joint_mass", "rotorse.re.precomp.joint_mass")
+            self.connect("blade.internal_structure_2d_fem.joint_bolt", "rotorse.rs.bjs.joint_bolt")
             self.connect("materials.name", "rotorse.re.precomp.mat_name")
             self.connect("materials.orth", "rotorse.re.precomp.orth")
             self.connect("materials.E", "rotorse.re.precomp.E")
@@ -179,6 +179,7 @@ class WT_RNTA(om.Group):
             self.connect("blade.internal_structure_2d_fem.layer_side", "rotorse.rs.bjs.layer_side")
             self.connect("blade.pa.twist_param", "rotorse.rs.bjs.twist")
             self.connect("blade.outer_shape_bem.pitch_axis", "rotorse.rs.bjs.pitch_axis")
+            self.connect("materials.unit_cost", "rotorse.rs.bjs.unit_cost")
 
 
                          # Connections to RotorCost
@@ -196,7 +197,7 @@ class WT_RNTA(om.Group):
             self.connect("blade.internal_structure_2d_fem.joint_position", "rotorse.rc.joint_position")
             # self.connect("blade.internal_structure_2d_fem.joint_mass", "rotorse.rc.joint_mass")  # TODO figure out how to load joint mass from bjs to re.precomp and rc
             self.connect("rotorse.rs.bjs.joint_mass", "rotorse.rc.joint_mass")
-            self.connect("blade.internal_structure_2d_fem.joint_cost", "rotorse.rc.joint_cost")
+            self.connect("blade.internal_structure_2d_fem.joint_nonmaterial_cost", "rotorse.rc.joint_nonmaterial_cost")
             self.connect("materials.name", "rotorse.rc.mat_name")
             self.connect("materials.orth", "rotorse.rc.orth")
             self.connect("materials.rho", "rotorse.rc.rho")
@@ -239,7 +240,7 @@ class WT_RNTA(om.Group):
             self.connect("rotorse.rs.frame.root_M", "drivese.pitch_system.BRFM", src_indices=[1])
 
             self.connect("blade.pa.chord_param", "drivese.blade_root_diameter", src_indices=[0])
-            self.connect("rotorse.rs.bjs.blade_mass", "drivese.blade_mass")  # TODO this should be from rs.bjs.blade_mass
+            self.connect("rotorse.rs.bjs.blade_mass", "drivese.blade_mass")
             self.connect("rotorse.re.precomp.mass_all_blades", "drivese.blades_mass")
             self.connect("rotorse.re.precomp.I_all_blades", "drivese.blades_I")
 

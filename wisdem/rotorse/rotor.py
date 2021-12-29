@@ -116,6 +116,7 @@ class RotorSE(om.Group):
         )
         self.connect("rp.powercurve.rated_pitch", ["rs.pitch_load", "rs.tot_loads_gust.aeroloads_pitch"])
         self.connect("re.precomp.blade_mass", "rs.bjs.blade_mass_re")
+        self.connect("rs.bjs.joint_material_cost", "rc.joint_material_cost")
         # TODO pass joint cost to rotor cost
 
         # Connections to RotorPower

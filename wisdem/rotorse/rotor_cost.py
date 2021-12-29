@@ -2848,7 +2848,6 @@ class RotorCost(om.ExplicitComponent):
             val=np.zeros((n_layers, n_span)),
             desc="2D array of the non-dimensional end point defined along the outer profile of a layer. The TE suction side is 0, the TE pressure side is 1. The first dimension represents each layer, the second dimension represents each entry along blade span.",
         )
-
         # Inputs - Materials
         self.add_discrete_input("mat_name", val=n_mat * [""], desc="1D array of names of materials.")
         self.add_discrete_input(
@@ -2961,13 +2960,10 @@ class RotorCost(om.ExplicitComponent):
             val=0.01,
             desc="Percentage of blade length starting from blade root that is preformed and later inserted into the mold",
         )
-        self.add_input(
-            "joint_position",
-            val=0.0,
-            desc="Spanwise position of the segmentation joint.",
-        )
-        self.add_input("joint_mass", val=0.0, desc="Mass of the joint.")
-        self.add_input("joint_cost", val=0.0, units="USD", desc="Cost of the joint.")
+        self.add_input("joint_position", val=0.0, desc="Spanwise position of the segmentation joint.")
+        self.add_input("joint_material_cost", val=0, units="USD", desc="Joint materials cost (bolts + inserts + adhesive")
+        self.add_input("joint_nonmaterial_cost", val=0.0, units="USD", desc="Non-material joint cost (mfg, assembly, transportation).")
+        self.add_input("joint_mass", val=0.0, units="kg", desc="Mass of the joint.")
         # Outputs
         self.add_output(
             "sect_perimeter",
@@ -3107,6 +3103,12 @@ class RotorCost(om.ExplicitComponent):
             units="USD",
             desc="Total blade cost (variable and fixed)",
         )
+        self.add_output(
+            "joint_cost",
+            val=0.0,
+            units="USD",
+            desc="Total blade joint cost",
+        )
 
     def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
 
@@ -3138,7 +3140,9 @@ class RotorCost(om.ExplicitComponent):
         barrel_nut_unit_cost = inputs["barrel_nut_unit_cost"]
         LPS_unit_cost = inputs["LPS_unit_cost"]
         root_preform_length = inputs["root_preform_length"]
-        joint_cost = inputs["joint_cost"]
+        joint_nonmaterial_cost = inputs["joint_nonmaterial_cost"]
+        joint_material_cost = inputs["joint_material_cost"]
+        joint_cost = joint_material_cost + joint_nonmaterial_cost
 
         # Compute arc length along blade span
         arc_L_i = np.zeros(self.n_span)
@@ -3320,6 +3324,7 @@ class RotorCost(om.ExplicitComponent):
                 volume2lay_sc_ss = np.trapz(layer_volume_span_ss[i_lay, :], s * blade_length)
                 fabric2lay_sc_ss = volume2lay_sc_ss / ply_t[i_mat]
                 mass_sc_ss = volume2lay_sc_ss * rho_mat[i_mat]
+                print(mass_sc_ss)
             elif self.layer_name[i_lay] == self.spar_cap_ps:
                 spar_cap_width_ps[imin:imax] = width[imin:imax]
                 spar_cap_length_ps = (s[imax] - s[imin]) * blade_length
@@ -3329,6 +3334,7 @@ class RotorCost(om.ExplicitComponent):
                 volume2lay_sc_ps = np.trapz(layer_volume_span_ss[i_lay, :], s * blade_length)
                 fabric2lay_sc_ps = volume2lay_sc_ps / ply_t[i_mat]
                 mass_sc_ps = volume2lay_sc_ps * rho_mat[i_mat]
+                print(mass_sc_ps)
 
             # Shell skins
             elif component_id[i_mat] == 2:
@@ -3611,6 +3617,7 @@ class RotorCost(om.ExplicitComponent):
         outputs["cost_capital"] = cost_capital
         outputs["blade_fixed_cost"] = blade_fixed_cost
         outputs["total_blade_cost"] = total_blade_cost
+        outputs["joint_cost"] = joint_cost
 
 
 # OpenMDAO group to execute the blade cost model without the rest of WISDEM
@@ -3676,7 +3683,7 @@ class StandaloneRotorCost(om.Group):
         self.connect("blade.internal_structure_2d_fem.web_end_nd", "rc.web_end_nd")
         self.connect("blade.internal_structure_2d_fem.joint_position", "rc.joint_position")
         self.connect("blade.internal_structure_2d_fem.joint_mass", "rc.joint_mass")
-        self.connect("blade.internal_structure_2d_fem.joint_cost", "rc.joint_cost")
+        self.connect("blade.internal_structure_2d_fem.joint_nonmaterial_cost", "rc.joint_nonmaterial_cost")
         self.connect("materials.name", "rc.mat_name")
         self.connect("materials.orth", "rc.orth")
         self.connect("materials.rho", "rc.rho")

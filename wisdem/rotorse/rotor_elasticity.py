@@ -142,7 +142,7 @@ class RunPreComp(ExplicitComponent):
             val=0.0,
             desc="Spanwise position of the segmentation joint.",
         )
-        self.add_input("joint_mass", val=0.0, desc="Mass of the joint.")
+        self.add_input("joint_mass", val=0.0, units='kg', desc="Mass of the joint.")
 
         # Outputs - Distributed beam properties
         self.add_output("z", val=np.zeros(n_span), units="m", desc="locations of properties along beam")
@@ -787,7 +787,7 @@ class RunPreComp(ExplicitComponent):
                 if sector_idx_te_ps[i]:
                     if j in lowerCS[i].mat_idx[sector_idx_te_ps[i]]:
                         outputs["te_ps_mats"][i, j] = 1.0
-
+        rhoA_joint = copy.copy(rhoA)
         if inputs["joint_mass"] > 0.0:
             s = (inputs["r"] - inputs["r"][0]) / (inputs["r"][-1] - inputs["r"][0])
             id_station = np.argmin(abs(inputs["joint_position"] - s))
@@ -797,7 +797,7 @@ class RunPreComp(ExplicitComponent):
                     inputs["r"][id_station + 1] - inputs["r"][id_station],
                 ]
             )
-            rhoA[id_station] += inputs["joint_mass"] / span
+            rhoA_joint[id_station] += inputs["joint_mass"] / span
 
         outputs["z"] = inputs["r"]
         outputs["EIxx"] = EIxx
@@ -807,7 +807,7 @@ class RunPreComp(ExplicitComponent):
         outputs["EIxy"] = EIxy
         outputs["x_ec"] = x_ec
         outputs["y_ec"] = y_ec
-        outputs["rhoA"] = rhoA
+        outputs["rhoA"] = rhoA_joint
         outputs["A"] = area
         outputs["rhoJ"] = rhoJ
         outputs["Tw_iner"] = Tw_iner
@@ -832,7 +832,7 @@ class RunPreComp(ExplicitComponent):
 
         # Compute mass and inertia of blade and rotor
         blade_mass = np.trapz(rhoA, inputs["r"])
-        blade_moment_of_inertia = np.trapz(rhoA * inputs["r"] ** 2.0, inputs["r"])
+        blade_moment_of_inertia = np.trapz(rhoA_joint * inputs["r"] ** 2.0, inputs["r"])
         tilt = inputs["uptilt"]
         n_blades = discrete_inputs["n_blades"]
         mass_all_blades = n_blades * blade_mass

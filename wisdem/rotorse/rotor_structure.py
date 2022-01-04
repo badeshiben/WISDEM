@@ -1197,7 +1197,7 @@ class BladeJointSizing(ExplicitComponent):
                    desc="2D array of the offset along the y axis to set the position of a layer. Positive values move the layer towards the trailing edge, negative values towards the leading edge. The first dimension represents each layer, the second dimension represents each entry along blade span.")
 
         self.add_output('blade_mass', val=0, units='kg', desc='blade mass')
-        self.add_output("joint_material_cost", val=0, desc='cost of joint metallic parts (bolts, washers, and inserts)')
+        self.add_output("joint_material_cost", val=0, units='USD', desc='cost of joint metallic parts (bolts, washers, and inserts)')
 
     def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
 
@@ -1249,11 +1249,14 @@ class BladeJointSizing(ExplicitComponent):
         Lt = L_bolt - Ld
         n_bolt = -2  # initialized
         n_bolt_prev = -1  # initialized
-        print(bolt)
         if bolt == 'M48':
             At = 1470 / 1e6
             d_bolt = 0.048
             m_bolt = 8.03
+        if bolt == 'M42':
+            At = 1120 / 1e6
+            d_bolt = 0.042
+            m_bolt = 6.08
         if bolt == 'M36':
             At = 817 / 1e6
             d_bolt = 0.036
@@ -1440,10 +1443,8 @@ class BladeJointSizing(ExplicitComponent):
                 else:
                     print('Solution has not converged to 0.01 bolt. Choosing the maximum of the last three bolt numbers')
                     n_bolt = max(n_bolt_list[-3:])
-            if n_bolt > n_bolt_max:
-                print('Warning. Unable to accommodate # bolts required (', n_bolt,
-                      '). Limiting to max # bolts that can fit in '
-                      'the cross section (', n_bolt_max, ').')
+            if n_bolt >= n_bolt_max:
+                n_bolt_req = n_bolt
                 n_bolt = n_bolt_max
 
             # print('n_bolt_flap_fatigue', n_bolt_flap_fatigue)
@@ -1461,6 +1462,10 @@ class BladeJointSizing(ExplicitComponent):
             # print('################################################')
 
         # 6- loop through steps 4b-5 until n_bolt converges. Result is n_bolt
+        if n_bolt >= n_bolt_max:
+            print('Warning. Unable to accommodate # bolts required (', n_bolt_req,
+                      '). Limiting to max # bolts that can fit in '
+                      'the cross section (', n_bolt_max, ').')
 
         # 7- calc spar cap dimensions needed to resist loads. Neglect fatigue because composites handle it better than
         # metal, generally. Shear will drive the design due to carbon fiber's isotropicity. Consider shearing due to
@@ -1477,12 +1482,12 @@ class BladeJointSizing(ExplicitComponent):
         t_req_sc = np.max([t1, t2, t_sc])
         if t_req_sc > t_max_sc:
             t_req_sc = t_max_sc
-            print('Warning, required spar cap thickness (', t_req_sc, ') is greater than max allowed (', t_max_sc, '). Limiting to max allowed')
+            # print('Warning, required spar cap thickness (', t_req_sc, ') is greater than max allowed (', t_max_sc, '). Limiting to max allowed')
         w_req_sc = np.max([n_bolt * bolt_spacing, w_sc])  # required width driven by number of bolts
         w_layer[sc_ss_layer_i, i_span] = w_req_sc
         w_layer[sc_ps_layer_i, i_span] = w_req_sc
-        if w_req_sc > w_sc:
-            print('Warning, required spar cap width of ', w_req_sc, ' is greater than nominal. Update input files')
+        # if w_req_sc > w_sc:
+            # print('Warning, required spar cap width of ', w_req_sc, ' is greater than nominal. Update input files')
 
         # check if spar cap reaches TE or LE. If so, change y offset to prevent this
         offset = inputs["layer_offset_y_pa"]
@@ -1524,9 +1529,9 @@ class BladeJointSizing(ExplicitComponent):
         cost_bolt_tot = cost_bolt * n_bolt
         cost_joint_materials = cost_adhesive + cost_bolt_tot + cost_insert
         ### TESTING WISDEM WITHOUT JOINT BELOW
-        # m_add = 0
-        # t_req_sc = t_sc
-        # w_req_sc = w_sc
+        m_add = 0
+        t_req_sc = t_sc
+        w_req_sc = w_sc
         # print('M_FLAP ', inputs['M1'])
         # print('span_loc ', self.nd_span)
         ### REMOVE ABOVE WHEN DONE TESTING WISDEM WITHOUT JOINT

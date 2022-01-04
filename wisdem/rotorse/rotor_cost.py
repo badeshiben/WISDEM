@@ -3324,7 +3324,6 @@ class RotorCost(om.ExplicitComponent):
                 volume2lay_sc_ss = np.trapz(layer_volume_span_ss[i_lay, :], s * blade_length)
                 fabric2lay_sc_ss = volume2lay_sc_ss / ply_t[i_mat]
                 mass_sc_ss = volume2lay_sc_ss * rho_mat[i_mat]
-                print(mass_sc_ss)
             elif self.layer_name[i_lay] == self.spar_cap_ps:
                 spar_cap_width_ps[imin:imax] = width[imin:imax]
                 spar_cap_length_ps = (s[imax] - s[imin]) * blade_length
@@ -3334,7 +3333,7 @@ class RotorCost(om.ExplicitComponent):
                 volume2lay_sc_ps = np.trapz(layer_volume_span_ss[i_lay, :], s * blade_length)
                 fabric2lay_sc_ps = volume2lay_sc_ps / ply_t[i_mat]
                 mass_sc_ps = volume2lay_sc_ps * rho_mat[i_mat]
-                print(mass_sc_ps)
+
 
             # Shell skins
             elif component_id[i_mat] == 2:

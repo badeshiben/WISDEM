@@ -1,6 +1,6 @@
 general:
     folder_output: outputs_struct
-    fname_output: M48_10cp
+    fname_output: M36_10cp_LCOE
 
 design_variables:
     blade:
@@ -21,7 +21,7 @@ design_variables:
                 index_start: 1         # Lock the first DV from blade root
                 index_end: 9           # The last DV at blade tip is locked
 
-merit_figure: blade_mass
+merit_figure: LCOE
 
 constraints:
     blade:

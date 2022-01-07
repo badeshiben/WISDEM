@@ -1,6 +1,6 @@
 general:
-    folder_output: outputs_struct
-    fname_output: M42_30cp_loc50
+    folder_output: outputs_struct/M36_30cp_loc80
+    fname_output: M36_loc80_E
 
 design_variables:
     blade:
@@ -44,7 +44,7 @@ constraints:
 driver:
     optimization:
         flag: True         # Flag to enable optimization
-        tol: 7.5e-4         # Optimality tolerance
+        tol: 5e-4         # Optimality tolerance
         # max_major_iter: 10  # Maximum number of major design iterations (SNOPT)
         # max_minor_iter: 100 # Maximum number of minor design iterations (SNOPT)
         max_iter: 25         # Maximum number of iterations (SLSQP)

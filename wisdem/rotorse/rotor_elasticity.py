@@ -313,6 +313,8 @@ class RunPreComp(ExplicitComponent):
         )
 
     def compute(self, inputs, outputs, discrete_inputs, discrete_outputs):
+        # sc_ss = inputs["layer_start_nd"]
+        # x=1 TODO check if re getting updated layer dimensions
 
         ##############################
         def region_stacking(
@@ -599,7 +601,6 @@ class RunPreComp(ExplicitComponent):
             # determine their chord-wise start and end location on the pressure and suctions side
 
             spline_arc2xnd = PchipInterpolator(profile_i_arc, profile_i_rot[:, 0])
-
             # time1 = time.time()
             for idx_sec in range(self.n_layers):
                 if discrete_inputs["definition_layer"][idx_sec] != 10:
@@ -788,6 +789,8 @@ class RunPreComp(ExplicitComponent):
                     if j in lowerCS[i].mat_idx[sector_idx_te_ps[i]]:
                         outputs["te_ps_mats"][i, j] = 1.0
         rhoA_joint = copy.copy(rhoA)
+        # joint_mass = inputs["joint_mass"]
+        # print('joint mass to re = ', joint_mass)
         if inputs["joint_mass"] > 0.0:
             s = (inputs["r"] - inputs["r"][0]) / (inputs["r"][-1] - inputs["r"][0])
             id_station = np.argmin(abs(inputs["joint_position"] - s))

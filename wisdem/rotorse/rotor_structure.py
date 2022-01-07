@@ -1483,7 +1483,7 @@ class BladeJointSizing(ExplicitComponent):
         if t_req_sc > t_max_sc:
             t_req_sc = t_max_sc
             # print('Warning, required spar cap thickness (', t_req_sc, ') is greater than max allowed (', t_max_sc, '). Limiting to max allowed')
-        w_req_sc = np.max([n_bolt * bolt_spacing, w_sc])  # required width driven by number of bolts
+        w_req_sc = np.max([n_bolt * bolt_spacing, w_sc]) # required width driven by number of bolts
         w_layer[sc_ss_layer_i, i_span] = w_req_sc
         w_layer[sc_ps_layer_i, i_span] = w_req_sc
         # if w_req_sc > w_sc:
@@ -1528,13 +1528,6 @@ class BladeJointSizing(ExplicitComponent):
         cost_insert = m_insert_stock * pu_cost_insert
         cost_bolt_tot = cost_bolt * n_bolt
         cost_joint_materials = cost_adhesive + cost_bolt_tot + cost_insert
-        ### TESTING WISDEM WITHOUT JOINT BELOW
-        m_add = 0
-        t_req_sc = t_sc
-        w_req_sc = w_sc
-        # print('M_FLAP ', inputs['M1'])
-        # print('span_loc ', self.nd_span)
-        ### REMOVE ABOVE WHEN DONE TESTING WISDEM WITHOUT JOINT
         t_sc_ratio = t_req_sc / t_sc
         w_sc_ratio = w_req_sc / w_sc
 
@@ -1550,6 +1543,24 @@ class BladeJointSizing(ExplicitComponent):
         outputs['joint_mass'] = m_add
         outputs['joint_material_cost'] = cost_joint_materials
 
+        ### TESTING WISDEM WITHOUT JOINT BELOW
+        # m_add = 0
+        # outputs['blade_mass'] = inputs['blade_mass_re']
+        # outputs['layer_offset_y_bjs'] = inputs['layer_offset_y_pa']
+        # outputs['layer_start_nd_bjs'] = inputs['layer_start_nd']
+        # outputs['layer_end_nd_bjs'] = inputs['layer_end_nd']
+        # outputs['layer_width_bjs'] = inputs['layer_width']
+        # outputs['L_transition_joint'] = 0
+        # outputs['t_sc_ratio_joint'] = 1
+        # outputs['w_sc_ratio_joint'] = 1
+        # outputs['n_joint_bolt'] = 0
+        # outputs['joint_mass'] = 0
+        # outputs['joint_material_cost'] = 0
+        ### REMOVE ABOVE WHEN DONE TESTING WISDEM WITHOUT JOINT
+
+
+
+
         # print('Sparcap suction start = ', layer_start_nd[sc_ss_layer_i, i_span])
         # print('Sparcap suction end = ', layer_end_nd[sc_ss_layer_i, i_span])
         # print('Sparcap suction offset = ', offset[sc_ss_layer_i, i_span])
@@ -1562,10 +1573,10 @@ class BladeJointSizing(ExplicitComponent):
         # print('w_req_sc_joint', w_req_sc)
         # print('t_sc_ratio_joint', t_sc_ratio)
         # print('w_sc_ratio_joint', w_sc_ratio)
-        print('n_joint_bolt', n_bolt)
-        # print('blade mass initial', inputs['blade_mass_re'])
-        print('joint_mass_adder', m_add)
-        print('joint material cost', cost_joint_materials)
+        # print('n_joint_bolt', n_bolt)
+        # # print('blade mass initial', inputs['blade_mass_re'])
+        # print('joint_mass_adder', m_add)
+        # print('joint material cost', cost_joint_materials)
         # print('blade mass final', outputs['blade_mass'])
         # print('L_transition_joint', L_transition)
         # print('joint model done')

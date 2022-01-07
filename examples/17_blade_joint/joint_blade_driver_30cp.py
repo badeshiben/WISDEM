@@ -5,7 +5,7 @@ from wisdem.commonse.mpi_tools import MPI
 from wisdem.postprocessing.compare_designs import run
 
 mydir = os.path.dirname(os.path.realpath(__file__))  # get path to this file
-fname_wt_input = mydir + os.sep + "BAR_USC_masslessjoint.yaml"  #
+fname_wt_input = mydir + os.sep + "outputs_struct/M36_30cp_loc80/M36_30cp_loc80.yaml"  #
 fname_modeling_options = mydir + os.sep + "modeling_options_BAR_USC.yaml"
 fname_analysis_options_struct = mydir + os.sep + "analysis_options_struct_joint_30cp.yaml"
 
